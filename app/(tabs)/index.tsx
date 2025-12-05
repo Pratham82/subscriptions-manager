@@ -1,11 +1,156 @@
-import { StyleSheet } from 'react-native';
+import { useState } from 'react';
+import { StyleSheet, Text, View, Pressable, ScrollView } from 'react-native';
 
-import { Text, View } from '@/components/Themed';
+import { useSubscriptionStore } from '@/store/subscriptionStore';
+import { Subscription } from '@/types/subscription';
+import { SubscriptionModal } from '@/components/SubscriptionModal';
+import { SubscriptionDetailSheet } from '@/components/SubscriptionDetailSheet';
 
-export default function TabOneScreen() {
+function formatDate(dateString: string): string {
+  const date = new Date(dateString);
+  return date.toLocaleDateString('en-IN', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  });
+}
+
+function getDaysUntil(dateString: string): number {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const target = new Date(dateString);
+  target.setHours(0, 0, 0, 0);
+  const diff = target.getTime() - today.getTime();
+  return Math.ceil(diff / (1000 * 60 * 60 * 24));
+}
+
+function SubscriptionCard({
+  subscription,
+  onPress,
+}: {
+  subscription: Subscription;
+  onPress: () => void;
+}) {
+  const daysUntil = getDaysUntil(subscription.nextPaymentDate);
+
+  return (
+    <Pressable
+      style={styles.card}
+      onPress={onPress}
+      android_ripple={{ color: '#1a1a2e' }}
+    >
+      <View style={styles.cardContent}>
+        <View style={styles.logoContainer}>
+          <View style={styles.logoPlaceholder}>
+            <Text style={styles.logoText}>
+              {subscription.name.charAt(0).toUpperCase()}
+            </Text>
+          </View>
+        </View>
+        <View style={styles.cardInfo}>
+          <Text style={styles.cardName}>{subscription.name}</Text>
+          <Text style={styles.cardDate}>
+            Renews in {daysUntil} days • {formatDate(subscription.nextPaymentDate)}
+          </Text>
+        </View>
+        <View style={styles.cardPrice}>
+          <Text style={styles.priceText}>
+            {subscription.currency}
+            {subscription.price.toFixed(2)}
+          </Text>
+        </View>
+        <Text style={styles.chevron}>›</Text>
+      </View>
+    </Pressable>
+  );
+}
+
+function SolarSystemVisual() {
+  return (
+    <View style={styles.visualContainer}>
+      <View style={styles.orbContainer}>
+        <View style={styles.centerOrb} />
+        <View style={[styles.ring, styles.ring1]}>
+          <View style={styles.planet} />
+        </View>
+        <View style={[styles.ring, styles.ring2]}>
+          <View style={styles.planet} />
+        </View>
+        <View style={[styles.ring, styles.ring3]}>
+          <View style={styles.planet} />
+          <View style={styles.planet} />
+        </View>
+      </View>
+    </View>
+  );
+}
+
+export default function SubscriptionsScreen() {
+  const { subscriptions } = useSubscriptionStore();
+  const [modalVisible, setModalVisible] = useState(false);
+  const [selectedSubscription, setSelectedSubscription] = useState<Subscription | null>(
+    null,
+  );
+  const activeSubscriptions = subscriptions.filter(sub => sub.isActive);
+  const totalMonthly = activeSubscriptions.reduce((sum, sub) => {
+    const monthlyPrice = sub.billingCycle === 'yearly' ? sub.price / 12 : sub.price;
+    return sum + monthlyPrice;
+  }, 0);
+
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Subscriptions</Text>
+      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+        {/* Header */}
+        <View style={styles.header}>
+          <Pressable style={styles.upgradeButton}>
+            <Text style={styles.upgradeText}>+ Upgrade</Text>
+          </Pressable>
+          <Pressable style={styles.addButton} onPress={() => setModalVisible(true)}>
+            <Text style={styles.addIcon}>+</Text>
+          </Pressable>
+        </View>
+
+        {/* Stats */}
+        <View style={styles.statsContainer}>
+          <View style={styles.statItem}>
+            <Text style={styles.statNumber}>{activeSubscriptions.length}</Text>
+            <Text style={styles.statLabel}>Personal</Text>
+          </View>
+          <View style={styles.statItem}>
+            <Text style={styles.statNumber}>₹{totalMonthly.toFixed(2)}</Text>
+            <Text style={styles.statLabel}>Total monthly</Text>
+          </View>
+        </View>
+
+        {/* Visual */}
+        <SolarSystemVisual />
+
+        {/* Active Section */}
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Active</Text>
+          <Pressable>
+            <Text style={styles.sortText}>Next ↑↓</Text>
+          </Pressable>
+        </View>
+
+        {/* Subscription List */}
+        <View style={styles.listContainer}>
+          {activeSubscriptions.map(subscription => (
+            <SubscriptionCard
+              key={subscription.id}
+              subscription={subscription}
+              onPress={() => setSelectedSubscription(subscription)}
+            />
+          ))}
+        </View>
+      </ScrollView>
+
+      <SubscriptionModal visible={modalVisible} onClose={() => setModalVisible(false)} />
+
+      <SubscriptionDetailSheet
+        subscription={selectedSubscription}
+        onClose={() => setSelectedSubscription(null)}
+      />
     </View>
   );
 }
@@ -13,16 +158,185 @@ export default function TabOneScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: '#0a0a0f',
   },
-  title: {
+  scrollView: {
+    flex: 1,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingTop: 60,
+    paddingBottom: 20,
+  },
+  upgradeButton: {
+    backgroundColor: '#6b46c1',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+  upgradeText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  addButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#1a1a2e',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  addIcon: {
+    color: '#fff',
+    fontSize: 24,
+    fontWeight: '300',
+  },
+  statsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    marginBottom: 30,
+  },
+  statItem: {
+    alignItems: 'flex-start',
+  },
+  statNumber: {
+    color: '#fff',
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 4,
+  },
+  statLabel: {
+    color: '#888',
+    fontSize: 14,
+  },
+  visualContainer: {
+    height: 200,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginVertical: 20,
+  },
+  orbContainer: {
+    width: 200,
+    height: 200,
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'relative',
+  },
+  centerOrb: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: '#ff6b6b',
+    position: 'absolute',
+  },
+  ring: {
+    position: 'absolute',
+    borderWidth: 1,
+    borderColor: '#6b46c1',
+    borderRadius: 1000,
+  },
+  ring1: {
+    width: 100,
+    height: 100,
+    borderColor: '#6b46c1',
+  },
+  ring2: {
+    width: 140,
+    height: 140,
+    borderColor: '#8b5cf6',
+  },
+  ring3: {
+    width: 180,
+    height: 180,
+    borderColor: '#a78bfa',
+  },
+  planet: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: '#fff',
+    position: 'absolute',
+    top: -6,
+    left: '50%',
+    marginLeft: -6,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    marginTop: 20,
+    marginBottom: 16,
+  },
+  sectionTitle: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  sortText: {
+    color: '#888',
+    fontSize: 14,
+  },
+  listContainer: {
+    paddingHorizontal: 20,
+    paddingBottom: 100,
+  },
+  card: {
+    backgroundColor: '#1a1a2e',
+    borderRadius: 12,
+    marginBottom: 12,
+    overflow: 'hidden',
+  },
+  cardContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+  },
+  logoContainer: {
+    marginRight: 12,
+  },
+  logoPlaceholder: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#6b46c1',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  logoText: {
+    color: '#fff',
     fontSize: 20,
     fontWeight: 'bold',
   },
-  separator: {
-    marginVertical: 30,
-    height: 1,
-    width: '80%',
+  cardInfo: {
+    flex: 1,
+  },
+  cardName: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  cardDate: {
+    color: '#888',
+    fontSize: 12,
+  },
+  cardPrice: {
+    marginRight: 8,
+  },
+  priceText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  chevron: {
+    color: '#888',
+    fontSize: 24,
+    fontWeight: '300',
   },
 });
