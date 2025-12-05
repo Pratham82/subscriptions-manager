@@ -10,7 +10,7 @@ const prettier = require('eslint-config-prettier');
 
 module.exports = [
   {
-    files: ['**/*.{js,jsx,ts,tsx}'],
+    files: ['**/*.{ts,tsx}'],
     ignores: ['node_modules', 'dist', 'build', '.expo'],
 
     languageOptions: {
@@ -57,6 +57,56 @@ module.exports = [
 
       // TypeScript
       '@typescript-eslint/no-unused-vars': ['warn'],
+
+      // Import ordering
+      'import/order': [
+        'warn',
+        {
+          groups: ['builtin', 'external', 'internal', 'parent', 'sibling', 'index'],
+          'newlines-between': 'always',
+        },
+      ],
+    },
+  },
+  {
+    files: ['**/*.{js,jsx}'],
+    ignores: ['node_modules', 'dist', 'build', '.expo'],
+
+    languageOptions: {
+      ecmaVersion: 'latest',
+      sourceType: 'module',
+      parserOptions: {
+        ecmaFeatures: {
+          jsx: true,
+        },
+      },
+    },
+
+    plugins: {
+      react,
+      'react-hooks': reactHooks,
+      'react-native': reactNative,
+      import: importPlugin,
+    },
+
+    settings: {
+      react: {
+        version: 'detect',
+      },
+      'import/resolver': {
+        node: true,
+      },
+    },
+
+    rules: {
+      ...prettier.rules,
+
+      // React
+      'react/react-in-jsx-scope': 'off',
+
+      // Hooks
+      'react-hooks/rules-of-hooks': 'error',
+      'react-hooks/exhaustive-deps': 'warn',
 
       // Import ordering
       'import/order': [
