@@ -3,8 +3,7 @@ import { StyleSheet, Text, View, Pressable, ScrollView } from 'react-native';
 
 import { useSubscriptionStore } from '@/store/subscriptionStore';
 import { Subscription } from '@/types/subscription';
-import { SubscriptionModal } from '@/components/SubscriptionModal';
-import { SubscriptionDetailSheet } from '@/components/SubscriptionDetailSheet';
+import { SubscriptionModal, SubscriptionDetailSheet } from '@/components/core';
 
 function formatDate(dateString: string): string {
   const date = new Date(dateString);

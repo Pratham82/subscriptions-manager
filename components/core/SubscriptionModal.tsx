@@ -7,13 +7,12 @@ import BottomSheet, {
   BottomSheetScrollView,
 } from '@gorhom/bottom-sheet';
 
+import { BillingCyclePicker } from '@/components/BillingCyclePicker';
+import { CategoryPicker } from '@/components/CategoryPicker';
+import { DatePicker } from '@/components/DatePicker';
+import { NotificationPicker } from '@/components/NotificationPicker';
 import { useSubscriptionStore } from '@/store/subscriptionStore';
 import { Subscription } from '@/types/subscription';
-
-import { BillingCyclePicker } from './BillingCyclePicker';
-import { CategoryPicker } from './CategoryPicker';
-import { NotificationPicker } from './NotificationPicker';
-import { DatePicker } from './DatePicker';
 
 const CATEGORIES = [
   'Newsletter',
@@ -419,7 +418,7 @@ export function SubscriptionModal({
         selected={notification}
         options={NOTIFICATION_OPTIONS}
         onSelect={notif => {
-          setNotification(notif);
+          setNotification(notif as (typeof NOTIFICATION_OPTIONS)[number]);
           setShowNotificationPicker(false);
         }}
       />
@@ -465,7 +464,7 @@ const styles = StyleSheet.create({
   contentContainer: {
     flex: 1,
     backgroundColor: 'transparent',
-    paddingBottom: 200,
+    paddingBottom: 400,
   },
   scrollView: {
     flex: 1,

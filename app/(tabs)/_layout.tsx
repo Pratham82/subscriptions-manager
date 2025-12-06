@@ -5,7 +5,7 @@ import { Tabs } from 'expo-router';
 import { BlurView } from 'expo-blur';
 
 import Colors from '@/constants/Colors';
-import { useColorScheme } from '@/components/useColorScheme';
+import { useColorScheme } from '@/hooks';
 
 // You can explore the built-in icon families and icons on the web at https://icons.expo.fyi/
 function TabBarIcon(props: {
