@@ -1,2 +1,3 @@
 export { SubscriptionDetailSheet } from './SubscriptionDetailSheet';
-export { SubscriptionModal } from './SubscriptionModal';
+export { AddSubscriptionModal } from './AddSubscriptionModal';
+export { SubscriptionCard } from './SubscriptionCard';

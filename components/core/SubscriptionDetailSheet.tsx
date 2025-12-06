@@ -11,7 +11,7 @@ import BottomSheet, {
 import { useSubscriptionStore } from '@/store/subscriptionStore';
 import { Subscription } from '@/types/subscription';
 
-import { SubscriptionModal } from './SubscriptionModal';
+import { AddSubscriptionModal } from './AddSubscriptionModal';
 
 function formatDate(dateString: string): string {
   const date = new Date(dateString);
@@ -287,7 +287,7 @@ export function SubscriptionDetailSheet({
         ) : null}
       </BottomSheet>
 
-      <SubscriptionModal
+      <AddSubscriptionModal
         visible={editModalVisible}
         onClose={() => setEditModalVisible(false)}
         subscription={subscription || undefined}

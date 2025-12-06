@@ -12,6 +12,8 @@ export { BillingCyclePicker } from './BillingCyclePicker';
 export { CategoryPicker } from './CategoryPicker';
 export { NotificationPicker } from './NotificationPicker';
 export { DatePicker } from './DatePicker';
+export { SortPicker } from './SortPicker';
+export type { SortOption } from './SortPicker';
 
 // Visual components
 export { SolarSystemVisual } from './SolarSystemVisual';

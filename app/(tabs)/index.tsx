@@ -1,69 +1,15 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { StyleSheet, Text, View, Pressable, ScrollView } from 'react-native';
 
 import { useSubscriptionStore } from '@/store/subscriptionStore';
 import { Subscription } from '@/types/subscription';
-import { SubscriptionModal, SubscriptionDetailSheet } from '@/components/core';
+import {
+  AddSubscriptionModal,
+  SubscriptionDetailSheet,
+  SubscriptionCard,
+} from '@/components/core';
 import { SolarSystemVisual } from '@/components/SolarSystemVisual';
-
-function formatDate(dateString: string): string {
-  const date = new Date(dateString);
-  return date.toLocaleDateString('en-IN', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  });
-}
-
-function getDaysUntil(dateString: string): number {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const target = new Date(dateString);
-  target.setHours(0, 0, 0, 0);
-  const diff = target.getTime() - today.getTime();
-  return Math.ceil(diff / (1000 * 60 * 60 * 24));
-}
-
-function SubscriptionCard({
-  subscription,
-  onPress,
-}: {
-  subscription: Subscription;
-  onPress: () => void;
-}) {
-  const daysUntil = getDaysUntil(subscription.nextPaymentDate);
-
-  return (
-    <Pressable
-      style={styles.card}
-      onPress={onPress}
-      android_ripple={{ color: '#1a1a2e' }}
-    >
-      <View style={styles.cardContent}>
-        <View style={styles.logoContainer}>
-          <View style={styles.logoPlaceholder}>
-            <Text style={styles.logoText}>
-              {subscription.name.charAt(0).toUpperCase()}
-            </Text>
-          </View>
-        </View>
-        <View style={styles.cardInfo}>
-          <Text style={styles.cardName}>{subscription.name}</Text>
-          <Text style={styles.cardDate}>
-            Renews in {daysUntil} days • {formatDate(subscription.nextPaymentDate)}
-          </Text>
-        </View>
-        <View style={styles.cardPrice}>
-          <Text style={styles.priceText}>
-            {subscription.currency}
-            {subscription.price.toFixed(2)}
-          </Text>
-        </View>
-        <Text style={styles.chevron}>›</Text>
-      </View>
-    </Pressable>
-  );
-}
+import { SortPicker, type SortOption } from '@/components/SortPicker';
 
 export default function SubscriptionsScreen() {
   const { subscriptions } = useSubscriptionStore();
@@ -71,13 +17,68 @@ export default function SubscriptionsScreen() {
   const [selectedSubscription, setSelectedSubscription] = useState<Subscription | null>(
     null,
   );
+  const [sortOption, setSortOption] = useState<SortOption>('next');
+  const [showSortPicker, setShowSortPicker] = useState(false);
+
   const activeSubscriptions = subscriptions.filter(sub => sub.isActive);
-  const totalMonthly = activeSubscriptions.reduce((sum, sub) => {
-    const monthlyPrice = sub.billingCycle === 'yearly' ? sub.price / 12 : sub.price;
+
+  // Sort subscriptions based on selected option
+  const sortedSubscriptions = useMemo(() => {
+    const sorted = [...activeSubscriptions];
+
+    switch (sortOption) {
+      case 'next':
+        return sorted.sort((a, b) => {
+          const dateA = new Date(a.nextPaymentDate).getTime();
+          const dateB = new Date(b.nextPaymentDate).getTime();
+          return dateA - dateB;
+        });
+      case 'name':
+        return sorted.sort((a, b) => a.name.localeCompare(b.name));
+      case 'price-low':
+        return sorted.sort((a, b) => a.price - b.price);
+      case 'price-high':
+        return sorted.sort((a, b) => b.price - a.price);
+      case 'group-by':
+        // Group by category, then sort by name within each group
+        return sorted.sort((a, b) => {
+          if (a.category !== b.category) {
+            return a.category.localeCompare(b.category);
+          }
+          return a.name.localeCompare(b.name);
+        });
+      default:
+        return sorted;
+    }
+  }, [activeSubscriptions, sortOption]);
+  // Calculate monthly cost for each subscription
+  const totalMonthly = sortedSubscriptions.reduce((sum, sub) => {
+    let monthlyPrice = 0;
+    const { billingCycle, billingCycleQuantity, price } = sub;
+
+    switch (billingCycle) {
+      case 'daily':
+        // Daily: price per day * 30 days per month / quantity
+        monthlyPrice = (price * 30) / billingCycleQuantity;
+        break;
+      case 'weekly':
+        // Weekly: price per week * 52 weeks / 12 months / quantity
+        monthlyPrice = (price * 52) / 12 / billingCycleQuantity;
+        break;
+      case 'monthly':
+        // Monthly: price per billing cycle / quantity (if quantity is 2, it's every 2 months)
+        monthlyPrice = price / billingCycleQuantity;
+        break;
+      case 'yearly':
+        // Yearly: price per year / 12 months / quantity (if quantity is 2, it's every 2 years)
+        monthlyPrice = price / 12 / billingCycleQuantity;
+        break;
+    }
+
     return sum + monthlyPrice;
   }, 0);
 
-  // Distribute subscriptions across 3 rings
+  // Distribute subscriptions across 3 rings (use original activeSubscriptions for visual)
   const ring1Subs = activeSubscriptions.slice(
     0,
     Math.ceil(activeSubscriptions.length / 3),
@@ -126,14 +127,24 @@ export default function SubscriptionsScreen() {
         {/* Active Section */}
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Active</Text>
-          <Pressable>
-            <Text style={styles.sortText}>Next ↑↓</Text>
+          <Pressable onPress={() => setShowSortPicker(true)}>
+            <Text style={styles.sortText}>
+              {sortOption === 'next'
+                ? 'Next ↑↓'
+                : sortOption === 'name'
+                  ? 'Name'
+                  : sortOption === 'price-low'
+                    ? 'Price (Low)'
+                    : sortOption === 'price-high'
+                      ? 'Price (High)'
+                      : 'Group by'}
+            </Text>
           </Pressable>
         </View>
 
         {/* Subscription List */}
         <View style={styles.listContainer}>
-          {activeSubscriptions.map(subscription => (
+          {sortedSubscriptions.map(subscription => (
             <SubscriptionCard
               key={subscription.id}
               subscription={subscription}
@@ -143,11 +154,21 @@ export default function SubscriptionsScreen() {
         </View>
       </ScrollView>
 
-      <SubscriptionModal visible={modalVisible} onClose={() => setModalVisible(false)} />
+      <AddSubscriptionModal
+        visible={modalVisible}
+        onClose={() => setModalVisible(false)}
+      />
 
       <SubscriptionDetailSheet
         subscription={selectedSubscription}
         onClose={() => setSelectedSubscription(null)}
+      />
+
+      <SortPicker
+        visible={showSortPicker}
+        onClose={() => setShowSortPicker(false)}
+        selected={sortOption}
+        onSelect={setSortOption}
       />
     </View>
   );
@@ -232,58 +253,5 @@ const styles = StyleSheet.create({
   listContainer: {
     paddingHorizontal: 20,
     paddingBottom: 100,
-  },
-  card: {
-    backgroundColor: '#1a1a2e',
-    borderRadius: 12,
-    marginBottom: 12,
-    overflow: 'hidden',
-  },
-  cardContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-  },
-  logoContainer: {
-    marginRight: 12,
-  },
-  logoPlaceholder: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#6b46c1',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  logoText: {
-    color: '#fff',
-    fontSize: 20,
-    fontWeight: 'bold',
-  },
-  cardInfo: {
-    flex: 1,
-  },
-  cardName: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 4,
-  },
-  cardDate: {
-    color: '#888',
-    fontSize: 12,
-  },
-  cardPrice: {
-    marginRight: 8,
-  },
-  priceText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  chevron: {
-    color: '#888',
-    fontSize: 24,
-    fontWeight: '300',
   },
 });
