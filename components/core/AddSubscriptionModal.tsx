@@ -47,17 +47,17 @@ function formatDate(dateString: string): string {
   });
 }
 
-interface SubscriptionModalProps {
+interface AddSubscriptionModalProps {
   visible: boolean;
   onClose: () => void;
   subscription?: Subscription;
 }
 
-export function SubscriptionModal({
+export function AddSubscriptionModal({
   visible,
   onClose,
   subscription,
-}: SubscriptionModalProps) {
+}: AddSubscriptionModalProps) {
   const { addSubscription, updateSubscription } = useSubscriptionStore();
   const isEdit = !!subscription;
   const bottomSheetRef = useRef<BottomSheet>(null);
