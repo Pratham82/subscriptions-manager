@@ -1,7 +1,8 @@
 import React, { useCallback, useMemo, useRef } from 'react';
-import { StyleSheet, Text, View, Pressable } from 'react-native';
+import { StyleSheet, Text, View, Pressable, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
+import { BlurView } from 'expo-blur';
 import BottomSheet, {
   BottomSheetBackdrop,
   BottomSheetScrollView,
@@ -224,26 +225,64 @@ export function SubscriptionDetailSheet({
             </BottomSheetScrollView>
 
             {/* Actions - Sticky at bottom */}
-            <View style={styles.actionsContainer}>
-              <Pressable
-                style={styles.cancelButton}
-                onPress={() => {
-                  markAsCancelled(subscription.id);
-                  onClose();
-                }}
+            {Platform.OS === 'ios' ? (
+              <View
+                style={[styles.actionsContainer, { paddingBottom: insets.bottom + 20 }]}
               >
-                <Text style={styles.cancelButtonText}>Mark as Cancelled</Text>
-              </Pressable>
-              <Pressable
-                style={styles.deleteButton}
-                onPress={() => {
-                  deleteSubscription(subscription.id);
-                  onClose();
-                }}
-              >
-                <Text style={styles.deleteButtonText}>Delete subscription</Text>
-              </Pressable>
-            </View>
+                <BlurView
+                  intensity={80}
+                  tint="dark"
+                  style={[
+                    styles.blurBackground,
+                    { paddingBottom: Math.max(insets.bottom, 20) },
+                  ]}
+                >
+                  <View style={styles.actionsContent}>
+                    <Pressable
+                      style={styles.cancelButton}
+                      onPress={() => {
+                        markAsCancelled(subscription.id);
+                        onClose();
+                      }}
+                    >
+                      <Text style={styles.cancelButtonText}>Mark as Cancelled</Text>
+                    </Pressable>
+                    <Pressable
+                      style={styles.deleteButton}
+                      onPress={() => {
+                        deleteSubscription(subscription.id);
+                        onClose();
+                      }}
+                    >
+                      <Text style={styles.deleteButtonText}>Delete subscription</Text>
+                    </Pressable>
+                  </View>
+                </BlurView>
+              </View>
+            ) : (
+              <View style={styles.actionsContainer}>
+                <View style={styles.actionsContentAndroid}>
+                  <Pressable
+                    style={styles.cancelButton}
+                    onPress={() => {
+                      markAsCancelled(subscription.id);
+                      onClose();
+                    }}
+                  >
+                    <Text style={styles.cancelButtonText}>Mark as Cancelled</Text>
+                  </Pressable>
+                  <Pressable
+                    style={styles.deleteButton}
+                    onPress={() => {
+                      deleteSubscription(subscription.id);
+                      onClose();
+                    }}
+                  >
+                    <Text style={styles.deleteButtonText}>Delete subscription</Text>
+                  </Pressable>
+                </View>
+              </View>
+            )}
           </View>
         ) : null}
       </BottomSheet>
@@ -402,10 +441,23 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
+    width: '100%',
+    zIndex: 10,
+  },
+  blurBackground: {
+    width: '100%',
     paddingHorizontal: 20,
     paddingTop: 16,
     paddingBottom: 20,
+  },
+  actionsContent: {
     gap: 16,
+  },
+  actionsContentAndroid: {
+    gap: 16,
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 20,
     backgroundColor: '#0a0a0f',
     borderTopWidth: 1,
     borderTopColor: '#1a1a2e',

@@ -1,6 +1,8 @@
 import React from 'react';
+import { Platform } from 'react-native';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { Tabs } from 'expo-router';
+import { BlurView } from 'expo-blur';
 
 import Colors from '@/constants/Colors';
 import { useColorScheme } from '@/components/useColorScheme';
@@ -21,10 +23,34 @@ export default function TabLayout() {
       screenOptions={{
         tabBarActiveTintColor: Colors[colorScheme ?? 'dark'].tint,
         tabBarInactiveTintColor: Colors[colorScheme ?? 'dark'].tabIconDefault,
-        tabBarStyle: {
-          backgroundColor: '#1a1a2e',
-          borderTopColor: '#1a1a2e',
-        },
+        tabBarStyle:
+          Platform.OS === 'ios'
+            ? {
+                position: 'absolute',
+                borderTopWidth: 0,
+                backgroundColor: 'transparent',
+                elevation: 0,
+              }
+            : {
+                backgroundColor: '#1a1a2e',
+                borderTopColor: '#1a1a2e',
+              },
+        tabBarBackground:
+          Platform.OS === 'ios'
+            ? () => (
+                <BlurView
+                  intensity={80}
+                  tint="dark"
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                  }}
+                />
+              )
+            : undefined,
         headerShown: false,
       }}
     >

@@ -465,6 +465,7 @@ const styles = StyleSheet.create({
   contentContainer: {
     flex: 1,
     backgroundColor: 'transparent',
+    paddingBottom: 200,
   },
   scrollView: {
     flex: 1,
