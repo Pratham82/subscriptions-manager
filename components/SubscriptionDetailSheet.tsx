@@ -50,7 +50,6 @@ export function SubscriptionDetailSheet({
 
   React.useEffect(() => {
     if (subscription) {
-      // Use requestAnimationFrame and setTimeout to ensure the sheet is ready before expanding
       requestAnimationFrame(() => {
         setTimeout(() => {
           bottomSheetRef.current?.expand();
@@ -113,140 +112,141 @@ export function SubscriptionDetailSheet({
           colors={['#2d1b4e', '#1a1a2e', '#0a0a0f']}
           style={[StyleSheet.absoluteFill, styles.gradientContainer]}
         />
-        <BottomSheetView style={styles.contentContainer}>
-          {subscription ? (
-            <>
-              {/* Handle Indicator */}
-              <View style={styles.handleIndicatorContainer}>
-                <View style={styles.handleIndicator} />
-              </View>
-              {/* Header */}
-              <View style={[styles.header]}>
-                <Pressable onPress={onClose}>
-                  {/* <Text style={styles.backButton}>←</Text> */}
-                </Pressable>
-                <Pressable
-                  style={styles.editButton}
-                  onPress={() => setEditModalVisible(true)}
-                >
-                  <Text style={styles.editText}>Edit</Text>
-                </Pressable>
-              </View>
+        {subscription ? (
+          <View style={styles.contentContainer}>
+            {/* Handle Indicator */}
+            <View style={styles.handleIndicatorContainer}>
+              <View style={styles.handleIndicator} />
+            </View>
 
-              <BottomSheetScrollView
-                contentContainerStyle={styles.scrollContent}
-                showsVerticalScrollIndicator={false}
+            {/* Header */}
+            <View style={[styles.header]}>
+              <Pressable onPress={onClose}>
+                {/* <Text style={styles.backButton}>←</Text> */}
+              </Pressable>
+              <Pressable
+                style={styles.editButton}
+                onPress={() => setEditModalVisible(true)}
               >
-                {/* Subscription Info */}
-                <View style={styles.infoSection}>
-                  <View style={styles.logoContainer}>
-                    <View style={styles.logoPlaceholder}>
-                      <Text style={styles.logoText}>
-                        {subscription.name.charAt(0).toUpperCase()}
-                      </Text>
-                    </View>
-                  </View>
-                  <Text style={styles.name}>{subscription.name}</Text>
-                  <Text style={styles.price}>
-                    {subscription.currency}
-                    {subscription.price.toFixed(2)}
-                  </Text>
+                <Text style={styles.editText}>Edit</Text>
+              </Pressable>
+            </View>
 
-                  <View style={styles.detailsGrid}>
-                    <View style={styles.detailRow}>
-                      <Text style={styles.detailLabel}>Billing</Text>
-                      <Text style={styles.detailValue}>
-                        {subscription.billingCycleQuantity === 1
-                          ? subscription.billingCycle.charAt(0).toUpperCase() +
-                            subscription.billingCycle.slice(1)
-                          : `Every ${subscription.billingCycleQuantity} ${subscription.billingCycle}s`}
-                      </Text>
-                    </View>
-                    <View style={styles.detailRow}>
-                      <Text style={styles.detailLabel}>Next payment</Text>
-                      <Text style={styles.detailValue}>
-                        {formatDate(subscription.nextPaymentDate)}
-                      </Text>
-                    </View>
-                    <View style={styles.detailRow}>
-                      <Text style={styles.detailLabel}>Total spent</Text>
-                      <Text style={styles.detailValue}>
-                        {subscription.currency}
-                        {totalSpent.toFixed(2)}
-                      </Text>
-                    </View>
-                    <View style={styles.detailRow}>
-                      <Text style={styles.detailLabel}>Subscribed</Text>
-                      <Text style={styles.detailValue}>{daysSubscribed} days</Text>
-                    </View>
-                    <View style={styles.detailRow}>
-                      <Text style={styles.detailLabel}>Category</Text>
-                      <Text style={styles.detailValue}>{subscription.category}</Text>
-                    </View>
+            {/* Scrollable Content */}
+            <BottomSheetScrollView
+              style={styles.scrollView}
+              contentContainerStyle={styles.scrollContent}
+              showsVerticalScrollIndicator={false}
+            >
+              {/* Subscription Info */}
+              <View style={styles.infoSection}>
+                <View style={styles.logoContainer}>
+                  <View style={styles.logoPlaceholder}>
+                    <Text style={styles.logoText}>
+                      {subscription.name.charAt(0).toUpperCase()}
+                    </Text>
                   </View>
                 </View>
+                <Text style={styles.name}>{subscription.name}</Text>
+                <Text style={styles.price}>
+                  {subscription.currency}
+                  {subscription.price.toFixed(2)}
+                </Text>
 
-                {/* Billing History */}
-                <View style={styles.historySection}>
-                  <Text style={styles.sectionTitle}>Billing History</Text>
-                  {subscription.billingHistory.length > 0 ? (
-                    subscription.billingHistory.map((record, index) => (
-                      <View key={index} style={styles.historyItem}>
-                        <Text style={styles.historyDate}>{formatDate(record.date)}</Text>
-                        <Text style={styles.historyAmount}>
-                          {subscription.currency}
-                          {record.amount.toFixed(2)}
-                        </Text>
-                      </View>
-                    ))
-                  ) : (
-                    <Text style={styles.emptyText}>No billing history</Text>
-                  )}
+                <View style={styles.detailsGrid}>
+                  <View style={styles.detailRow}>
+                    <Text style={styles.detailLabel}>Billing</Text>
+                    <Text style={styles.detailValue}>
+                      {subscription.billingCycleQuantity === 1
+                        ? subscription.billingCycle.charAt(0).toUpperCase() +
+                          subscription.billingCycle.slice(1)
+                        : `Every ${subscription.billingCycleQuantity} ${subscription.billingCycle}s`}
+                    </Text>
+                  </View>
+                  <View style={styles.detailRow}>
+                    <Text style={styles.detailLabel}>Next payment</Text>
+                    <Text style={styles.detailValue}>
+                      {formatDate(subscription.nextPaymentDate)}
+                    </Text>
+                  </View>
+                  <View style={styles.detailRow}>
+                    <Text style={styles.detailLabel}>Total spent</Text>
+                    <Text style={styles.detailValue}>
+                      {subscription.currency}
+                      {totalSpent.toFixed(2)}
+                    </Text>
+                  </View>
+                  <View style={styles.detailRow}>
+                    <Text style={styles.detailLabel}>Subscribed</Text>
+                    <Text style={styles.detailValue}>{daysSubscribed} days</Text>
+                  </View>
+                  <View style={styles.detailRow}>
+                    <Text style={styles.detailLabel}>Category</Text>
+                    <Text style={styles.detailValue}>{subscription.category}</Text>
+                  </View>
                 </View>
-
-                {/* Price History */}
-                <View style={styles.historySection}>
-                  <Text style={styles.sectionTitle}>Price History</Text>
-                  {subscription.priceHistory.length > 0 ? (
-                    subscription.priceHistory.map((record, index) => (
-                      <View key={index} style={styles.historyItem}>
-                        <Text style={styles.historyDate}>{formatDate(record.date)}</Text>
-                        <Text style={styles.historyAmount}>
-                          {subscription.currency}
-                          {record.price.toFixed(2)}
-                        </Text>
-                      </View>
-                    ))
-                  ) : (
-                    <Text style={styles.emptyText}>No price history</Text>
-                  )}
-                </View>
-              </BottomSheetScrollView>
-
-              {/* Actions - Sticky at bottom */}
-              <View style={styles.actionsContainer}>
-                <Pressable
-                  style={styles.cancelButton}
-                  onPress={() => {
-                    markAsCancelled(subscription.id);
-                    onClose();
-                  }}
-                >
-                  <Text style={styles.cancelButtonText}>Mark as Cancelled</Text>
-                </Pressable>
-                <Pressable
-                  style={styles.deleteButton}
-                  onPress={() => {
-                    deleteSubscription(subscription.id);
-                    onClose();
-                  }}
-                >
-                  <Text style={styles.deleteButtonText}>Delete subscription</Text>
-                </Pressable>
               </View>
-            </>
-          ) : null}
-        </BottomSheetView>
+
+              {/* Billing History */}
+              <View style={styles.historySection}>
+                <Text style={styles.sectionTitle}>Billing History</Text>
+                {subscription.billingHistory.length > 0 ? (
+                  subscription.billingHistory.map((record, index) => (
+                    <View key={index} style={styles.historyItem}>
+                      <Text style={styles.historyDate}>{formatDate(record.date)}</Text>
+                      <Text style={styles.historyAmount}>
+                        {subscription.currency}
+                        {record.amount.toFixed(2)}
+                      </Text>
+                    </View>
+                  ))
+                ) : (
+                  <Text style={styles.emptyText}>No billing history</Text>
+                )}
+              </View>
+
+              {/* Price History */}
+              <View style={styles.historySection}>
+                <Text style={styles.sectionTitle}>Price History</Text>
+                {subscription.priceHistory.length > 0 ? (
+                  subscription.priceHistory.map((record, index) => (
+                    <View key={index} style={styles.historyItem}>
+                      <Text style={styles.historyDate}>{formatDate(record.date)}</Text>
+                      <Text style={styles.historyAmount}>
+                        {subscription.currency}
+                        {record.price.toFixed(2)}
+                      </Text>
+                    </View>
+                  ))
+                ) : (
+                  <Text style={styles.emptyText}>No price history</Text>
+                )}
+              </View>
+            </BottomSheetScrollView>
+
+            {/* Actions - Sticky at bottom */}
+            <View style={styles.actionsContainer}>
+              <Pressable
+                style={styles.cancelButton}
+                onPress={() => {
+                  markAsCancelled(subscription.id);
+                  onClose();
+                }}
+              >
+                <Text style={styles.cancelButtonText}>Mark as Cancelled</Text>
+              </Pressable>
+              <Pressable
+                style={styles.deleteButton}
+                onPress={() => {
+                  deleteSubscription(subscription.id);
+                  onClose();
+                }}
+              >
+                <Text style={styles.deleteButtonText}>Delete subscription</Text>
+              </Pressable>
+            </View>
+          </View>
+        ) : null}
       </BottomSheet>
 
       <SubscriptionModal
@@ -257,7 +257,6 @@ export function SubscriptionDetailSheet({
     </>
   );
 }
-
 const styles = StyleSheet.create({
   bottomSheet: {
     backgroundColor: 'transparent',
@@ -276,7 +275,6 @@ const styles = StyleSheet.create({
     paddingTop: 12,
     paddingBottom: 8,
     alignItems: 'center',
-    flexShrink: 0,
   },
   handleIndicator: {
     width: 40,
@@ -288,8 +286,11 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: 'transparent',
   },
+  scrollView: {
+    flex: 1,
+  },
   scrollContent: {
-    paddingBottom: 120,
+    paddingBottom: 180, // Space for the sticky action buttons
   },
   header: {
     flexDirection: 'row',
@@ -298,7 +299,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 10,
     paddingBottom: 20,
-    flexShrink: 0,
   },
   backButton: {
     color: '#fff',
@@ -399,14 +399,17 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
   },
   actionsContainer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
     paddingHorizontal: 20,
     paddingTop: 16,
     paddingBottom: 20,
     gap: 16,
-    backgroundColor: 'transparent',
+    backgroundColor: '#0a0a0f',
     borderTopWidth: 1,
     borderTopColor: '#1a1a2e',
-    flexShrink: 0,
   },
   cancelButton: {
     backgroundColor: '#6b46c1',
