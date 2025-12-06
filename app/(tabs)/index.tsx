@@ -4,6 +4,7 @@ import { StyleSheet, Text, View, Pressable, ScrollView } from 'react-native';
 import { useSubscriptionStore } from '@/store/subscriptionStore';
 import { Subscription } from '@/types/subscription';
 import { SubscriptionModal, SubscriptionDetailSheet } from '@/components/core';
+import { SolarSystemVisual } from '@/components/SolarSystemVisual';
 
 function formatDate(dateString: string): string {
   const date = new Date(dateString);
@@ -64,26 +65,6 @@ function SubscriptionCard({
   );
 }
 
-function SolarSystemVisual() {
-  return (
-    <View style={styles.visualContainer}>
-      <View style={styles.orbContainer}>
-        <View style={styles.centerOrb} />
-        <View style={[styles.ring, styles.ring1]}>
-          <View style={styles.planet} />
-        </View>
-        <View style={[styles.ring, styles.ring2]}>
-          <View style={styles.planet} />
-        </View>
-        <View style={[styles.ring, styles.ring3]}>
-          <View style={styles.planet} />
-          <View style={styles.planet} />
-        </View>
-      </View>
-    </View>
-  );
-}
-
 export default function SubscriptionsScreen() {
   const { subscriptions } = useSubscriptionStore();
   const [modalVisible, setModalVisible] = useState(false);
@@ -95,6 +76,24 @@ export default function SubscriptionsScreen() {
     const monthlyPrice = sub.billingCycle === 'yearly' ? sub.price / 12 : sub.price;
     return sum + monthlyPrice;
   }, 0);
+
+  // Distribute subscriptions across 3 rings
+  const ring1Subs = activeSubscriptions.slice(
+    0,
+    Math.ceil(activeSubscriptions.length / 3),
+  );
+  const ring2Subs = activeSubscriptions.slice(
+    ring1Subs.length,
+    ring1Subs.length + Math.ceil((activeSubscriptions.length - ring1Subs.length) / 2),
+  );
+  const ring3Subs = activeSubscriptions.slice(ring1Subs.length + ring2Subs.length);
+
+  // Prepare orbit data with counts
+  const orbits = [
+    { subscriptions: ring1Subs, count: ring1Subs.length },
+    { subscriptions: ring2Subs, count: ring2Subs.length },
+    { subscriptions: ring3Subs, count: ring3Subs.length },
+  ];
 
   return (
     <View style={styles.container}>
@@ -122,7 +121,7 @@ export default function SubscriptionsScreen() {
         </View>
 
         {/* Visual */}
-        <SolarSystemVisual />
+        <SolarSystemVisual orbits={orbits} />
 
         {/* Active Section */}
         <View style={styles.sectionHeader}>
@@ -212,57 +211,6 @@ const styles = StyleSheet.create({
   statLabel: {
     color: '#888',
     fontSize: 14,
-  },
-  visualContainer: {
-    height: 200,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginVertical: 20,
-  },
-  orbContainer: {
-    width: 200,
-    height: 200,
-    justifyContent: 'center',
-    alignItems: 'center',
-    position: 'relative',
-  },
-  centerOrb: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: '#ff6b6b',
-    position: 'absolute',
-  },
-  ring: {
-    position: 'absolute',
-    borderWidth: 1,
-    borderColor: '#6b46c1',
-    borderRadius: 1000,
-  },
-  ring1: {
-    width: 100,
-    height: 100,
-    borderColor: '#6b46c1',
-  },
-  ring2: {
-    width: 140,
-    height: 140,
-    borderColor: '#8b5cf6',
-  },
-  ring3: {
-    width: 180,
-    height: 180,
-    borderColor: '#a78bfa',
-  },
-  planet: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: '#fff',
-    position: 'absolute',
-    top: -6,
-    left: '50%',
-    marginLeft: -6,
   },
   sectionHeader: {
     flexDirection: 'row',
