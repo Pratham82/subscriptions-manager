@@ -4,7 +4,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import BottomSheet, {
   BottomSheetBackdrop,
-  BottomSheetView,
   BottomSheetScrollView,
 } from '@gorhom/bottom-sheet';
 
@@ -89,7 +88,6 @@ export function SubscriptionModal({
 
   useEffect(() => {
     if (visible) {
-      // Use requestAnimationFrame and setTimeout to ensure the sheet is ready before expanding
       requestAnimationFrame(() => {
         setTimeout(() => {
           bottomSheetRef.current?.expand();
@@ -114,7 +112,6 @@ export function SubscriptionModal({
       setNotification(subscription.notification || '1 day before');
       setUrl(subscription.url || '');
     } else {
-      // Reset for new subscription
       setName('');
       setPrice('');
       setPaymentDate(new Date());
@@ -185,7 +182,6 @@ export function SubscriptionModal({
     };
 
     if (isEdit && subscription) {
-      // Add price history entry if price changed
       if (subscription.price !== parseFloat(price)) {
         subscriptionData.priceHistory = [
           ...(subscription.priceHistory || []),
@@ -231,13 +227,14 @@ export function SubscriptionModal({
           colors={['#2d1b4e', '#1a1a2e', '#0a0a0f']}
           style={[StyleSheet.absoluteFill, styles.gradientContainer]}
         />
-        <BottomSheetView style={styles.contentContainer}>
+        <View style={styles.contentContainer}>
           {/* Handle Indicator */}
           <View style={styles.handleIndicatorContainer}>
             <View style={styles.handleIndicator} />
           </View>
+
           {/* Header */}
-          <View style={[styles.header]}>
+          <View style={styles.header}>
             <Text style={styles.headerTitle}>
               {isEdit ? 'Edit Subscription' : 'Add Subscription'}
             </Text>
@@ -246,155 +243,150 @@ export function SubscriptionModal({
             </Pressable>
           </View>
 
-          <View style={styles.scrollContainer}>
-            <BottomSheetScrollView
-              style={styles.scrollView}
-              contentContainerStyle={styles.scrollContent}
-              showsVerticalScrollIndicator={false}
-              nestedScrollEnabled={true}
-            >
-              {/* Subscription Info Card */}
-              <View style={styles.card}>
-                <View style={styles.logoContainer}>
-                  <View style={styles.logoPlaceholder}>
-                    <Text style={styles.logoText}>
-                      {name.charAt(0).toUpperCase() || '?'}
-                    </Text>
-                  </View>
-                </View>
-                <View style={styles.namePriceContainer}>
-                  <TextInput
-                    style={styles.nameInput}
-                    placeholder="Subscription name"
-                    placeholderTextColor="#888"
-                    value={name}
-                    onChangeText={setName}
-                  />
-                  <View style={styles.priceContainer}>
-                    <View style={styles.currencyBadge}>
-                      <Text style={styles.currencyText}>₹</Text>
-                    </View>
-                    <TextInput
-                      style={styles.priceInput}
-                      placeholder="0.00"
-                      placeholderTextColor="#888"
-                      value={price}
-                      onChangeText={setPrice}
-                      keyboardType="decimal-pad"
-                    />
-                  </View>
-                </View>
-              </View>
-
-              {/* Payment Info Card */}
-              <View style={styles.card}>
-                <Pressable
-                  style={styles.fieldRow}
-                  onPress={() => setShowDatePicker(true)}
-                >
-                  <Text style={styles.fieldLabel}>Payment date</Text>
-                  <View style={styles.dateBadge}>
-                    <Text style={styles.dateText}>
-                      {formatDate(paymentDate.toISOString())}
-                    </Text>
-                  </View>
-                </Pressable>
-
-                <Pressable
-                  style={styles.fieldRow}
-                  onPress={() => setShowBillingPicker(true)}
-                >
-                  <Text style={styles.fieldLabel}>Billing Cycle</Text>
-                  <Text style={styles.fieldValue}>{getBillingCycleText()}</Text>
-                  <Text style={styles.chevron}>›</Text>
-                </Pressable>
-
-                <View style={styles.fieldRow}>
-                  <Text style={styles.fieldLabel}>Free Trial</Text>
-                  <Switch
-                    value={freeTrial}
-                    onValueChange={setFreeTrial}
-                    trackColor={{ false: '#1a1a2e', true: '#6b46c1' }}
-                    thumbColor={freeTrial ? '#fff' : '#888'}
-                  />
-                </View>
-              </View>
-
-              {/* Categorization Card */}
-              <View style={styles.card}>
-                <Pressable
-                  style={styles.fieldRow}
-                  onPress={() => setList(list === 'Personal' ? 'Business' : 'Personal')}
-                >
-                  <Text style={styles.fieldLabel}>List</Text>
-                  <Text style={styles.fieldValue}>{list}</Text>
-                  <Text style={styles.chevron}>›</Text>
-                </Pressable>
-
-                <Pressable
-                  style={styles.fieldRow}
-                  onPress={() => setShowCategoryPicker(true)}
-                >
-                  <Text style={styles.fieldLabel}>Category</Text>
-                  <Text style={styles.fieldValue}>{category}</Text>
-                  <Text style={styles.chevron}>›</Text>
-                </Pressable>
-
-                <View style={styles.fieldRow}>
-                  <Text style={styles.fieldLabel}>Payment Method</Text>
-                  <TextInput
-                    style={styles.paymentInput}
-                    placeholder="Card number"
-                    placeholderTextColor="#888"
-                    value={paymentMethod}
-                    onChangeText={setPaymentMethod}
-                    keyboardType="numeric"
-                  />
-                </View>
-              </View>
-
-              {/* Additional Options Card */}
-              <View style={styles.card}>
-                <Pressable
-                  style={styles.fieldRow}
-                  onPress={() => setShowNotificationPicker(true)}
-                >
-                  <Text style={styles.fieldLabel}>Notification</Text>
-                  <Text style={styles.fieldValue}>
-                    {notification === 'none' ? 'None' : notification}
+          {/* Scrollable Content */}
+          <BottomSheetScrollView
+            style={styles.scrollView}
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
+          >
+            {/* Subscription Info Card */}
+            <View style={styles.card}>
+              <View style={styles.logoContainer}>
+                <View style={styles.logoPlaceholder}>
+                  <Text style={styles.logoText}>
+                    {name.charAt(0).toUpperCase() || '?'}
                   </Text>
-                  <Text style={styles.chevron}>›</Text>
-                </Pressable>
-
-                {isEdit && subscription && subscription.priceHistory.length > 0 && (
-                  <Pressable
-                    style={styles.fieldRow}
-                    onPress={() => {
-                      // Navigate to price history if needed
-                    }}
-                  >
-                    <Text style={styles.fieldLabel}>Price History</Text>
-                    <Text style={styles.chevron}>›</Text>
-                  </Pressable>
-                )}
+                </View>
               </View>
-
-              {/* URL Field */}
-              <View style={styles.card}>
-                <Text style={styles.fieldLabel}>URL</Text>
+              <View style={styles.namePriceContainer}>
                 <TextInput
-                  style={styles.urlInput}
-                  placeholder="https://..."
+                  style={styles.nameInput}
+                  placeholder="Subscription name"
                   placeholderTextColor="#888"
-                  value={url}
-                  onChangeText={setUrl}
-                  keyboardType="url"
-                  autoCapitalize="none"
+                  value={name}
+                  onChangeText={setName}
+                />
+                <View style={styles.priceContainer}>
+                  <View style={styles.currencyBadge}>
+                    <Text style={styles.currencyText}>₹</Text>
+                  </View>
+                  <TextInput
+                    style={styles.priceInput}
+                    placeholder="0.00"
+                    placeholderTextColor="#888"
+                    value={price}
+                    onChangeText={setPrice}
+                    keyboardType="decimal-pad"
+                  />
+                </View>
+              </View>
+            </View>
+
+            {/* Payment Info Card */}
+            <View style={styles.card}>
+              <Pressable style={styles.fieldRow} onPress={() => setShowDatePicker(true)}>
+                <Text style={styles.fieldLabel}>Payment date</Text>
+                <View style={styles.dateBadge}>
+                  <Text style={styles.dateText}>
+                    {formatDate(paymentDate.toISOString())}
+                  </Text>
+                </View>
+              </Pressable>
+
+              <Pressable
+                style={styles.fieldRow}
+                onPress={() => setShowBillingPicker(true)}
+              >
+                <Text style={styles.fieldLabel}>Billing Cycle</Text>
+                <Text style={styles.fieldValue}>{getBillingCycleText()}</Text>
+                <Text style={styles.chevron}>›</Text>
+              </Pressable>
+
+              <View style={styles.fieldRow}>
+                <Text style={styles.fieldLabel}>Free Trial</Text>
+                <Switch
+                  value={freeTrial}
+                  onValueChange={setFreeTrial}
+                  trackColor={{ false: '#1a1a2e', true: '#6b46c1' }}
+                  thumbColor={freeTrial ? '#fff' : '#888'}
                 />
               </View>
-            </BottomSheetScrollView>
-          </View>
-        </BottomSheetView>
+            </View>
+
+            {/* Categorization Card */}
+            <View style={styles.card}>
+              <Pressable
+                style={styles.fieldRow}
+                onPress={() => setList(list === 'Personal' ? 'Business' : 'Personal')}
+              >
+                <Text style={styles.fieldLabel}>List</Text>
+                <Text style={styles.fieldValue}>{list}</Text>
+                <Text style={styles.chevron}>›</Text>
+              </Pressable>
+
+              <Pressable
+                style={styles.fieldRow}
+                onPress={() => setShowCategoryPicker(true)}
+              >
+                <Text style={styles.fieldLabel}>Category</Text>
+                <Text style={styles.fieldValue}>{category}</Text>
+                <Text style={styles.chevron}>›</Text>
+              </Pressable>
+
+              <View style={styles.fieldRow}>
+                <Text style={styles.fieldLabel}>Payment Method</Text>
+                <TextInput
+                  style={styles.paymentInput}
+                  placeholder="Card number"
+                  placeholderTextColor="#888"
+                  value={paymentMethod}
+                  onChangeText={setPaymentMethod}
+                  keyboardType="numeric"
+                />
+              </View>
+            </View>
+
+            {/* Additional Options Card */}
+            <View style={styles.card}>
+              <Pressable
+                style={styles.fieldRow}
+                onPress={() => setShowNotificationPicker(true)}
+              >
+                <Text style={styles.fieldLabel}>Notification</Text>
+                <Text style={styles.fieldValue}>
+                  {notification === 'none' ? 'None' : notification}
+                </Text>
+                <Text style={styles.chevron}>›</Text>
+              </Pressable>
+
+              {isEdit && subscription && subscription.priceHistory.length > 0 && (
+                <Pressable
+                  style={styles.fieldRow}
+                  onPress={() => {
+                    // Navigate to price history if needed
+                  }}
+                >
+                  <Text style={styles.fieldLabel}>Price History</Text>
+                  <Text style={styles.chevron}>›</Text>
+                </Pressable>
+              )}
+            </View>
+
+            {/* URL Field */}
+            <View style={styles.card}>
+              <Text style={styles.fieldLabel}>URL</Text>
+              <TextInput
+                style={styles.urlInput}
+                placeholder="https://..."
+                placeholderTextColor="#888"
+                value={url}
+                onChangeText={setUrl}
+                keyboardType="url"
+                autoCapitalize="none"
+              />
+            </View>
+          </BottomSheetScrollView>
+        </View>
       </BottomSheet>
 
       {/* Pickers */}
@@ -444,7 +436,6 @@ export function SubscriptionModal({
     </>
   );
 }
-
 const styles = StyleSheet.create({
   bottomSheet: {
     backgroundColor: 'transparent',
@@ -463,7 +454,7 @@ const styles = StyleSheet.create({
     paddingTop: 12,
     paddingBottom: 8,
     alignItems: 'center',
-    flexShrink: 0,
+    // REMOVED: flexShrink: 0,
   },
   handleIndicator: {
     width: 40,
@@ -474,12 +465,9 @@ const styles = StyleSheet.create({
   contentContainer: {
     flex: 1,
     backgroundColor: 'transparent',
-    flexDirection: 'column',
   },
-  scrollContainer: {
+  scrollView: {
     flex: 1,
-    minHeight: 0,
-    flexShrink: 1,
   },
   header: {
     flexDirection: 'row',
@@ -490,7 +478,7 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
     borderBottomWidth: 1,
     borderBottomColor: '#1a1a2e',
-    flexShrink: 0,
+    // REMOVED: flexShrink: 0,
   },
   headerTitle: {
     color: '#fff',
@@ -508,11 +496,8 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
   },
-  scrollView: {
-    flex: 1,
-  },
   scrollContent: {
-    paddingBottom: 20,
+    paddingBottom: 40,
   },
   card: {
     backgroundColor: '#1a1a2e',
