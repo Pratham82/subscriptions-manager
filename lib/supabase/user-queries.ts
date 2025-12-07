@@ -172,3 +172,52 @@ export async function isAuthenticated(): Promise<boolean> {
   } = await supabase.auth.getUser();
   return user !== null;
 }
+
+/**
+ * Sign in with Google OAuth using Expo AuthSession
+ * This is the recommended approach for React Native/Expo apps
+ */
+export async function signInWithGoogle() {
+  const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
+
+  if (!supabaseUrl) {
+    throw new Error(
+      'Supabase URL is not configured. Please check your environment variables.',
+    );
+  }
+
+  // Use the app scheme for deep linking
+  // Format: your-app-scheme://auth/callback
+  const { makeRedirectUri } = await import('expo-auth-session');
+  const redirectTo = makeRedirectUri({
+    scheme: 'subscriptionmanager',
+    path: 'auth/callback',
+  });
+
+  try {
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo,
+        skipBrowserRedirect: true, // We'll handle the redirect with AuthSession
+      },
+    });
+
+    if (error) {
+      console.error('OAuth error:', error);
+      throw error;
+    }
+
+    if (!data?.url) {
+      const errorMessage =
+        'Failed to get OAuth URL. Please ensure:\n1. Google provider is enabled in Supabase Dashboard\n2. Google OAuth credentials are configured\n3. Redirect URL is added to Supabase URL Configuration';
+      console.error(errorMessage);
+      throw new Error(errorMessage);
+    }
+
+    return { url: data.url };
+  } catch (error) {
+    console.error('Error in signInWithGoogle:', error);
+    throw error;
+  }
+}

@@ -1,11 +1,22 @@
 import { StyleSheet, Text, View, Pressable, ScrollView } from 'react-native';
 
 import { useSubscriptionStore } from '@/store/subscriptionStore';
+import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/lib/AuthContext';
 
 export default function SettingsScreen() {
   const { subscriptions } = useSubscriptionStore();
+  const { session } = useAuth();
   const activeCount = subscriptions.filter(sub => sub.isActive).length;
   const cancelledCount = subscriptions.filter(sub => !sub.isActive).length;
+
+  const handleLogout = async () => {
+    try {
+      await supabase.auth.signOut();
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -63,6 +74,18 @@ export default function SettingsScreen() {
             <Text style={styles.optionValue}>1.0.0</Text>
           </View>
         </View>
+
+        {session && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Account</Text>
+            <Pressable
+              style={[styles.option, styles.logoutButton]}
+              onPress={handleLogout}
+            >
+              <Text style={styles.logoutText}>Sign Out</Text>
+            </Pressable>
+          </View>
+        )}
       </ScrollView>
     </View>
   );
@@ -142,5 +165,13 @@ const styles = StyleSheet.create({
     color: '#888',
     fontSize: 24,
     fontWeight: '300',
+  },
+  logoutButton: {
+    backgroundColor: '#dc2626',
+  },
+  logoutText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });

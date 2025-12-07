@@ -9,6 +9,9 @@ const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_KEY;
 if (__DEV__) {
   console.log('Supabase URL:', supabaseUrl ? 'Found' : 'Missing');
   console.log('Supabase Key:', supabaseAnonKey ? 'Found' : 'Missing');
+  if (supabaseUrl) {
+    console.log('Supabase URL value:', supabaseUrl);
+  }
 }
 
 let supabase: SupabaseClient;
@@ -49,6 +52,33 @@ try {
           eq: () => Promise.resolve({ error: new Error('Supabase not configured') }),
         }),
       }),
+      auth: {
+        getSession: () =>
+          Promise.resolve({
+            data: { session: null },
+            error: new Error('Supabase not configured'),
+          }),
+        getUser: () =>
+          Promise.resolve({
+            data: { user: null },
+            error: new Error('Supabase not configured'),
+          }),
+        signInWithOAuth: () =>
+          Promise.resolve({
+            data: { url: null },
+            error: new Error('Supabase not configured'),
+          }),
+        signOut: () => Promise.resolve({ error: new Error('Supabase not configured') }),
+        onAuthStateChange: () => ({
+          data: { subscription: null },
+          unsubscribe: () => {},
+        }),
+        setSession: () =>
+          Promise.resolve({
+            data: { session: null, user: null },
+            error: new Error('Supabase not configured'),
+          }),
+      },
     } as unknown as SupabaseClient;
   }
 } catch (error) {

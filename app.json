@@ -6,6 +6,11 @@
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "subscriptionmanager",
+    "extra": {
+      "eas": {
+        "projectId": "your-project-id"
+      }
+    },
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "splash": {

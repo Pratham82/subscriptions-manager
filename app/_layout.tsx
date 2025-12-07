@@ -1,7 +1,7 @@
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
-import { Stack } from 'expo-router';
+import { Stack, Redirect } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect, useState } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -11,8 +11,8 @@ import 'react-native-gesture-handler';
 import 'react-native-reanimated';
 
 import { useColorScheme } from '@/hooks';
-
 import { CustomSplashScreen } from './splash';
+import { AuthProvider, useAuth } from '../lib/AuthContext';
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -26,6 +26,16 @@ export const unstable_settings = {
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
+
+function RootNavigation() {
+  const { session, loading } = useAuth();
+
+  if (loading) return <Redirect href="/(auth)/loading" />;
+
+  if (!session) return <Redirect href="/(auth)/login" />;
+
+  return <Redirect href="/(tabs)" />;
+}
 
 export default function RootLayout() {
   const [loaded, error] = useFonts({
@@ -56,7 +66,11 @@ export default function RootLayout() {
     return <CustomSplashScreen onFinish={handleSplashFinish} />;
   }
 
-  return <RootLayoutNav />;
+  return (
+    <AuthProvider>
+      <RootLayoutNav />
+    </AuthProvider>
+  );
 }
 
 function RootLayoutNav() {
@@ -66,10 +80,13 @@ function RootLayoutNav() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <BottomSheetModalProvider>
         <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-          <Stack>
+          <Stack screenOptions={{ headerShown: false }}>
+            <Stack.Screen name="(auth)" options={{ headerShown: false }} />
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen name="(protected)" options={{ headerShown: false }} />
             <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
           </Stack>
+          <RootNavigation />
           <Toaster position="top-center" />
         </ThemeProvider>
       </BottomSheetModalProvider>
