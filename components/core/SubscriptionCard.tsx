@@ -1,6 +1,7 @@
 import { StyleSheet, Text, View, Pressable } from 'react-native';
 
 import { Subscription } from '@/types/subscription';
+import { getBrandByName, renderBrandIcon } from '@/utils/brandUtils';
 
 function formatDate(dateString: string): string {
   const date = new Date(dateString);
@@ -27,6 +28,7 @@ interface SubscriptionCardProps {
 
 export function SubscriptionCard({ subscription, onPress }: SubscriptionCardProps) {
   const daysUntil = getDaysUntil(subscription.nextPaymentDate);
+  const brand = getBrandByName(subscription.logo);
 
   return (
     <Pressable
@@ -36,10 +38,19 @@ export function SubscriptionCard({ subscription, onPress }: SubscriptionCardProp
     >
       <View style={styles.cardContent}>
         <View style={styles.logoContainer}>
-          <View style={styles.logoPlaceholder}>
-            <Text style={styles.logoText}>
-              {subscription.name.charAt(0).toUpperCase()}
-            </Text>
+          <View
+            style={[
+              styles.logoPlaceholder,
+              brand && { backgroundColor: brand.color || '#6b46c1' },
+            ]}
+          >
+            {brand ? (
+              renderBrandIcon(brand, 24, '#fff')
+            ) : (
+              <Text style={styles.logoText}>
+                {subscription.name.charAt(0).toUpperCase()}
+              </Text>
+            )}
           </View>
         </View>
         <View style={styles.cardInfo}>

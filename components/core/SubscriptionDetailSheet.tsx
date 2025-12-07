@@ -10,6 +10,7 @@ import BottomSheet, {
 
 import { useSubscriptionStore } from '@/store/subscriptionStore';
 import { Subscription } from '@/types/subscription';
+import { getBrandByName, renderBrandIcon } from '@/utils/brandUtils';
 
 import { AddSubscriptionModal } from './AddSubscriptionModal';
 
@@ -44,6 +45,7 @@ export function SubscriptionDetailSheet({
   const { markAsCancelled, deleteSubscription } = useSubscriptionStore();
   const [editModalVisible, setEditModalVisible] = React.useState(false);
   const insets = useSafeAreaInsets();
+  const brand = subscription ? getBrandByName(subscription.logo) : null;
 
   const snapPoints = useMemo(() => ['90%'], []);
 
@@ -140,10 +142,19 @@ export function SubscriptionDetailSheet({
               {/* Subscription Info */}
               <View style={styles.infoSection}>
                 <View style={styles.logoContainer}>
-                  <View style={styles.logoPlaceholder}>
-                    <Text style={styles.logoText}>
-                      {subscription.name.charAt(0).toUpperCase()}
-                    </Text>
+                  <View
+                    style={[
+                      styles.logoPlaceholder,
+                      brand && { backgroundColor: brand.color || '#6b46c1' },
+                    ]}
+                  >
+                    {brand ? (
+                      renderBrandIcon(brand, 28, '#fff')
+                    ) : (
+                      <Text style={styles.logoText}>
+                        {subscription.name.charAt(0).toUpperCase()}
+                      </Text>
+                    )}
                   </View>
                 </View>
                 <Text style={styles.name}>{subscription.name}</Text>

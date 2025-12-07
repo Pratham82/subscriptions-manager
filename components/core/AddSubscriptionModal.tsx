@@ -11,8 +11,11 @@ import { BillingCyclePicker } from '@/components/BillingCyclePicker';
 import { CategoryPicker } from '@/components/CategoryPicker';
 import { DatePicker } from '@/components/DatePicker';
 import { NotificationPicker } from '@/components/NotificationPicker';
+import { LogoPicker } from '@/components/LogoPicker';
 import { useSubscriptionStore } from '@/store/subscriptionStore';
 import { Subscription } from '@/types/subscription';
+import { Brand, BRANDS } from '@/data/brands';
+import { renderBrandIcon } from '@/utils/brandUtils';
 
 const CATEGORIES = [
   'Newsletter',
@@ -80,10 +83,12 @@ export function AddSubscriptionModal({
     useState<(typeof NOTIFICATION_OPTIONS)[number]>('1 day before');
   const [url, setUrl] = useState('');
 
+  const [selectedBrand, setSelectedBrand] = useState<Brand | null>(null);
   const [showBillingPicker, setShowBillingPicker] = useState(false);
   const [showCategoryPicker, setShowCategoryPicker] = useState(false);
   const [showNotificationPicker, setShowNotificationPicker] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showLogoPicker, setShowLogoPicker] = useState(false);
 
   useEffect(() => {
     if (visible) {
@@ -110,6 +115,14 @@ export function AddSubscriptionModal({
       setList(subscription.list || 'Personal');
       setNotification(subscription.notification || '1 day before');
       setUrl(subscription.url || '');
+
+      // Load brand if logo exists (stored as brand name in logo field)
+      if (subscription.logo) {
+        const brand = BRANDS.find(b => b.name === subscription.logo);
+        setSelectedBrand(brand || null);
+      } else {
+        setSelectedBrand(null);
+      }
     } else {
       setName('');
       setPrice('');
@@ -122,6 +135,7 @@ export function AddSubscriptionModal({
       setList('Personal');
       setNotification('1 day before');
       setUrl('');
+      setSelectedBrand(null);
     }
   }, [subscription, visible]);
 
@@ -173,6 +187,7 @@ export function AddSubscriptionModal({
       list,
       notification,
       url: url || undefined,
+      logo: selectedBrand?.name || undefined,
       subscribedDate:
         subscription?.subscribedDate || new Date().toISOString().split('T')[0],
       isActive: subscription?.isActive ?? true,
@@ -250,13 +265,27 @@ export function AddSubscriptionModal({
           >
             {/* Subscription Info Card */}
             <View style={styles.card}>
-              <View style={styles.logoContainer}>
-                <View style={styles.logoPlaceholder}>
-                  <Text style={styles.logoText}>
-                    {name.charAt(0).toUpperCase() || '?'}
-                  </Text>
+              <Pressable
+                style={styles.logoContainer}
+                onPress={() => setShowLogoPicker(true)}
+              >
+                <View
+                  style={[
+                    styles.logoPlaceholder,
+                    selectedBrand && {
+                      backgroundColor: selectedBrand.color || '#6b46c1',
+                    },
+                  ]}
+                >
+                  {selectedBrand ? (
+                    renderBrandIcon(selectedBrand, 24, '#fff')
+                  ) : (
+                    <Text style={styles.logoText}>
+                      {name.charAt(0).toUpperCase() || '?'}
+                    </Text>
+                  )}
                 </View>
-              </View>
+              </Pressable>
               <View style={styles.namePriceContainer}>
                 <TextInput
                   style={styles.nameInput}
@@ -430,6 +459,16 @@ export function AddSubscriptionModal({
         onSelect={date => {
           setPaymentDate(date);
           setShowDatePicker(false);
+        }}
+      />
+
+      <LogoPicker
+        visible={showLogoPicker}
+        onClose={() => setShowLogoPicker(false)}
+        selected={selectedBrand?.name}
+        onSelect={brand => {
+          setSelectedBrand(brand);
+          setShowLogoPicker(false);
         }}
       />
     </>
