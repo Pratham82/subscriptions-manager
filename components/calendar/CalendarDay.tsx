@@ -21,7 +21,7 @@ export function CalendarDay({
   cellWidth,
 }: CalendarDayProps) {
   if (day === null) {
-    return <View style={styles.dayCell} />;
+    return <View style={[styles.dayCell, { width: cellWidth, height: cellWidth }]} />;
   }
 
   const today = new Date();
