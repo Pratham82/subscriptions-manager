@@ -1,5 +1,5 @@
-import { useEffect } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { StyleSheet, Text, View, Image } from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -9,6 +9,7 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { Subscription } from '@/types/subscription';
+import { getBrandLogoUrl } from '@/utils/brandUtils';
 
 interface AnimatedPlanetProps {
   subscription: Subscription;
@@ -25,6 +26,9 @@ function AnimatedPlanet({
   rotation,
   index,
 }: AnimatedPlanetProps) {
+  const logoUrl = getBrandLogoUrl(subscription.logo || subscription.name);
+  const [logoError, setLogoError] = useState(false);
+
   const animatedStyle = useAnimatedStyle(() => {
     const currentAngle = angle + rotation.value;
     const x = Math.cos(currentAngle) * radius;
@@ -46,10 +50,29 @@ function AnimatedPlanet({
     };
   });
 
+  const showLogo = logoUrl && !logoError;
+
   return (
     <Animated.View style={[styles.planetContainer, animatedStyle]}>
-      <View style={[styles.planet, { backgroundColor: getPlanetColor(index) }]}>
-        <Text style={styles.planetText}>{subscription.name.charAt(0).toUpperCase()}</Text>
+      <View
+        style={[
+          styles.planet,
+          !showLogo && { backgroundColor: getPlanetColor(index) },
+          showLogo && { backgroundColor: '#fff' },
+        ]}
+      >
+        {showLogo ? (
+          <Image
+            source={{ uri: logoUrl }}
+            style={styles.planetLogo}
+            resizeMode="contain"
+            onError={() => setLogoError(true)}
+          />
+        ) : (
+          <Text style={styles.planetText}>
+            {subscription.name.charAt(0).toUpperCase()}
+          </Text>
+        )}
       </View>
     </Animated.View>
   );
@@ -266,5 +289,10 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 10,
     fontWeight: 'bold',
+  },
+  planetLogo: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
   },
 });

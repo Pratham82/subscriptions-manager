@@ -1,7 +1,8 @@
-import { StyleSheet, Text, View, Pressable } from 'react-native';
+import { useState } from 'react';
+import { StyleSheet, Text, View, Pressable, Image } from 'react-native';
 
 import { Subscription } from '@/types/subscription';
-import { getBrandByName, renderBrandIcon } from '@/utils/brandUtils';
+import { getBrandByName, getBrandLogoUrl, renderBrandIcon } from '@/utils/brandUtils';
 
 function formatDate(dateString: string): string {
   const date = new Date(dateString);
@@ -29,6 +30,10 @@ interface SubscriptionCardProps {
 export function SubscriptionCard({ subscription, onPress }: SubscriptionCardProps) {
   const daysUntil = getDaysUntil(subscription.nextPaymentDate);
   const brand = getBrandByName(subscription.logo);
+  const logoUrl = getBrandLogoUrl(subscription.logo || subscription.name);
+  const [logoError, setLogoError] = useState(false);
+
+  const showLogo = logoUrl && !logoError;
 
   return (
     <Pressable
@@ -41,10 +46,18 @@ export function SubscriptionCard({ subscription, onPress }: SubscriptionCardProp
           <View
             style={[
               styles.logoPlaceholder,
-              brand && { backgroundColor: brand.color || '#6b46c1' },
+              brand && !showLogo && { backgroundColor: brand.color || '#6b46c1' },
+              showLogo && { backgroundColor: '#fff' },
             ]}
           >
-            {brand ? (
+            {showLogo ? (
+              <Image
+                source={{ uri: logoUrl }}
+                style={styles.logoImage}
+                resizeMode="contain"
+                onError={() => setLogoError(true)}
+              />
+            ) : brand ? (
               renderBrandIcon(brand, 24, '#fff')
             ) : (
               <Text style={styles.logoText}>
@@ -98,6 +111,11 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 20,
     fontWeight: 'bold',
+  },
+  logoImage: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
   },
   cardInfo: {
     flex: 1,

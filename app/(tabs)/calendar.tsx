@@ -19,7 +19,7 @@ export default function CalendarScreen() {
   const subscriptionsByDate = useMemo(() => {
     const result: Record<
       string,
-      Array<{ name: string; color: string; price: number }>
+      Array<{ name: string; color: string; price: number; logo?: string }>
     > = {};
 
     const startDate = new Date(currentYear - 1, 0, 1); // January 1st of previous year
@@ -37,6 +37,7 @@ export default function CalendarScreen() {
           name: sub.name,
           color: '#6b46c1',
           price: sub.price,
+          logo: sub.logo,
         });
       });
     });

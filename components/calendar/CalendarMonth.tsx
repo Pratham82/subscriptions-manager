@@ -8,7 +8,7 @@ interface CalendarMonthProps {
   month: number;
   subscriptionsByDate: Record<
     string,
-    Array<{ name: string; color: string; price: number }>
+    Array<{ name: string; color: string; price: number; logo?: string }>
   >;
   today: Date;
   screenWidth: number;

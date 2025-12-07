@@ -1,8 +1,11 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { useState } from 'react';
+import { StyleSheet, Text, View, Image } from 'react-native';
+
+import { getBrandLogoUrl } from '@/utils/brandUtils';
 
 interface CalendarDayProps {
   day: number | null;
-  subscriptions: Array<{ name: string; color: string; price: number }>;
+  subscriptions: Array<{ name: string; color: string; price: number; logo?: string }>;
   isToday: boolean;
   month: number;
   year: number;
@@ -39,11 +42,17 @@ export function CalendarDay({
       <Text style={[styles.dayNumber, isCurrentDay && styles.todayText]}>{day}</Text>
       {subscriptions.length > 0 && (
         <View style={styles.iconsContainer}>
-          {subscriptions.slice(0, 3).map((sub, index) => (
-            <View key={index} style={[styles.iconBadge, { backgroundColor: sub.color }]}>
-              <Text style={styles.iconText}>{sub.name.charAt(0).toUpperCase()}</Text>
-            </View>
-          ))}
+          {subscriptions.slice(0, 3).map((sub, index) => {
+            const logoUrl = getBrandLogoUrl(sub.logo || sub.name);
+            return (
+              <SubscriptionBadge
+                key={index}
+                subscription={sub}
+                logoUrl={logoUrl}
+                color={sub.color}
+              />
+            );
+          })}
           {subscriptions.length > 3 && (
             <Text style={styles.moreCount}>+{subscriptions.length - 3}</Text>
           )}
@@ -97,6 +106,11 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: 'bold',
   },
+  iconLogo: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+  },
   moreCount: {
     color: '#888',
     fontSize: 8,
@@ -104,3 +118,35 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 });
+
+interface SubscriptionBadgeProps {
+  subscription: { name: string; logo?: string };
+  logoUrl: string | null;
+  color: string;
+}
+
+function SubscriptionBadge({ subscription, logoUrl, color }: SubscriptionBadgeProps) {
+  const [logoError, setLogoError] = useState(false);
+  const showLogo = logoUrl && !logoError;
+
+  return (
+    <View
+      style={[
+        styles.iconBadge,
+        !showLogo && { backgroundColor: color },
+        showLogo && { backgroundColor: '#fff' },
+      ]}
+    >
+      {showLogo ? (
+        <Image
+          source={{ uri: logoUrl }}
+          style={styles.iconLogo}
+          resizeMode="contain"
+          onError={() => setLogoError(true)}
+        />
+      ) : (
+        <Text style={styles.iconText}>{subscription.name.charAt(0).toUpperCase()}</Text>
+      )}
+    </View>
+  );
+}
