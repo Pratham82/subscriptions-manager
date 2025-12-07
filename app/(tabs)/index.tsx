@@ -134,16 +134,6 @@ export default function SubscriptionsScreen() {
           </Pressable>
         </View>
 
-        {/* Error Banner */}
-        {error && (
-          <View style={styles.errorBanner}>
-            <Text style={styles.errorText}>{error}</Text>
-            <Pressable onPress={fetchSubscriptions}>
-              <Text style={styles.retryText}>Retry</Text>
-            </Pressable>
-          </View>
-        )}
-
         {/* Stats */}
         <View style={styles.statsContainer}>
           <View style={styles.statItem}>

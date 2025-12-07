@@ -228,8 +228,7 @@ export function AddSubscriptionModal({
 
       onClose();
     } catch (error) {
-      console.error('Error saving subscription:', error);
-      // Error is handled by the store
+      // Error is handled by the store (toast will be shown)
     } finally {
       setIsSaving(false);
     }

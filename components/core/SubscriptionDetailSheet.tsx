@@ -65,7 +65,7 @@ export function SubscriptionDetailSheet({
       await markAsCancelled(subscription.id);
       onClose();
     } catch (error) {
-      console.error('Error cancelling subscription:', error);
+      // Error is handled by the store (toast will be shown)
     } finally {
       setIsCancelling(false);
     }
@@ -78,7 +78,7 @@ export function SubscriptionDetailSheet({
       await deleteSubscription(subscription.id);
       onClose();
     } catch (error) {
-      console.error('Error deleting subscription:', error);
+      // Error is handled by the store (toast will be shown)
     } finally {
       setIsDeleting(false);
     }
