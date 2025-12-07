@@ -11,11 +11,12 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useOAuth, useAuth, useUser } from '@clerk/clerk-expo';
 import { useRouter } from 'expo-router';
+import { toast } from 'sonner-native';
+
 import { useAuthStore } from '@/store/authStore';
 import { syncClerkUserToSupabase } from '@/lib/clerk-supabase-sync';
 import { Logo } from '@/components/Logo';
 import { GoogleIcon } from '@/components/GoogleIcon';
-import { toast } from 'sonner-native';
 
 export default function LoginScreen() {
   const { startOAuthFlow } = useOAuth({ strategy: 'oauth_google' });
@@ -65,7 +66,7 @@ export default function LoginScreen() {
       const { createdSessionId, setActive } = await startOAuthFlow();
 
       if (createdSessionId) {
-        await setActive({ session: createdSessionId });
+        await setActive?.({ session: createdSessionId });
         // The useEffect will handle syncing to Supabase
       }
     } catch (err: any) {
@@ -96,7 +97,10 @@ export default function LoginScreen() {
         <Text style={styles.subtitle}>
           Track and manage all your subscriptions in one place
         </Text>
+      </View>
 
+      {/* Bottom section with button and info */}
+      <View style={[styles.bottomSection, { paddingBottom: insets.bottom }]}>
         {/* Sign in button */}
         <Pressable
           style={[styles.googleButton, isLoading && styles.buttonDisabled]}
@@ -134,6 +138,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 32,
   },
+  bottomSection: {
+    paddingHorizontal: 32,
+    paddingTop: 20,
+    width: '100%',
+  },
   logoContainer: {
     marginBottom: 40,
   },
@@ -162,7 +171,8 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     width: '100%',
     maxWidth: 320,
-    marginBottom: 24,
+    alignSelf: 'center',
+    marginBottom: 16,
     ...Platform.select({
       ios: {
         shadowColor: '#000',
