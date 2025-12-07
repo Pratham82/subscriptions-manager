@@ -78,6 +78,15 @@ npx eas build --platform ios --profile production
 
 ---
 
+## Demo
+
+
+https://github.com/user-attachments/assets/3aa7608a-8d30-438d-8930-676d2f166799
+
+
+
+---
+
 ## 🔮 Roadmap
 
 - Add UI library (NativeWind or Tamagui)
