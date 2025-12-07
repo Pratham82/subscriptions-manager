@@ -1,6 +1,6 @@
-// lib/GoogleAuth.ts - Mobile-optimized version
+// lib/GoogleAuth.ts - Proven working solution
+import { makeRedirectUri } from 'expo-auth-session';
 import * as WebBrowser from 'expo-web-browser';
-import * as Linking from 'expo-linking';
 
 import { supabase } from './supabase/client';
 
@@ -8,24 +8,32 @@ WebBrowser.maybeCompleteAuthSession();
 
 export const signInWithGoogle = async () => {
   try {
-    const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
-
-    if (!supabaseUrl) {
-      throw new Error('Supabase URL is not configured');
-    }
-
     console.log('=== Starting Google Sign In ===');
 
-    // Create a custom redirect URL using Expo's linking
-    // This ensures the callback comes back to our app
-    const redirectUrl = Linking.createURL('auth/callback');
-    console.log('App redirect URL:', redirectUrl);
+    // Generate redirect URI
+    // In development (Expo Go), this will be exp://localhost:8081/--/auth/callback
+    // In production, this will be subscriptionmanager://auth/callback
+    const redirectUrl = makeRedirectUri({
+      scheme: 'subscriptionmanager',
+      path: 'auth/callback',
+    });
 
+    console.log('=== DEBUG INFO ===');
+    console.log('Generated Redirect URI:', redirectUrl);
+    console.log('Full redirect URL:', JSON.stringify(redirectUrl));
+
+    // Also try without explicit scheme to see what makeRedirectUri generates
+    const altRedirectUrl = makeRedirectUri({
+      path: 'auth/callback',
+    });
+    console.log('Alternative Redirect URI (no scheme):', altRedirectUrl);
+
+    // Get the OAuth provider URL
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
         redirectTo: redirectUrl,
-        skipBrowserRedirect: false,
+        skipBrowserRedirect: false, // Let Supabase handle the redirect
         queryParams: {
           access_type: 'offline',
           prompt: 'consent',
@@ -34,159 +42,102 @@ export const signInWithGoogle = async () => {
     });
 
     if (error) {
-      console.error('❌ OAuth initialization error:', error);
+      console.error('❌ OAuth error from Supabase:', error);
+      console.error('Error message:', error.message);
+      console.error('Error details:', JSON.stringify(error, null, 2));
       throw error;
     }
 
     if (!data?.url) {
-      throw new Error('Failed to get OAuth URL from Supabase');
+      console.error('❌ No OAuth URL returned from Supabase');
+      throw new Error('No provider URL returned');
     }
 
-    console.log('✓ OAuth URL generated');
-    console.log('Opening browser...');
+    console.log('✓ OAuth URL received from Supabase');
+    console.log('OAuth URL (first 100 chars):', data.url.substring(0, 100) + '...');
 
-    // Open browser and wait for callback
+    // Check if redirectTo is in the URL
+    if (data.url.includes('redirect_to=')) {
+      const redirectMatch = data.url.match(/redirect_to=([^&]+)/);
+      if (redirectMatch) {
+        const decodedRedirect = decodeURIComponent(redirectMatch[1]);
+        console.log('Redirect URL in OAuth URL:', decodedRedirect);
+      }
+    }
+
+    console.log('Opening browser with URL...');
+
+    // Open the auth session
     const result = await WebBrowser.openAuthSessionAsync(data.url, redirectUrl);
 
-    console.log('=== Browser Closed ===');
-    console.log('Result type:', result.type);
+    console.log('Browser result:', result.type);
 
-    if (result.type === 'success' && result.url) {
-      console.log('✓ Callback received');
-      console.log('Callback URL:', result.url);
-
-      // Parse the callback URL
-      const url = result.url;
-      let parsedUrl;
-
-      try {
-        // Handle custom scheme URLs
-        if (url.startsWith('exp://') || url.startsWith('subscriptionmanager://')) {
-          // Replace custom scheme with http for parsing
-          const urlForParsing = url.replace(/^(exp|subscriptionmanager):\/\//, 'http://');
-          parsedUrl = new URL(urlForParsing);
-        } else {
-          parsedUrl = new URL(url);
-        }
-      } catch (e) {
-        console.error('Error parsing URL:', e);
-        throw new Error('Invalid callback URL received');
+    if (result.type !== 'success') {
+      if (result.type === 'cancel') {
+        throw new Error('cancelled');
       }
-
-      // Extract tokens from hash fragment (most common)
-      const hashFragment = url.split('#')[1];
-      if (hashFragment) {
-        console.log('Checking hash fragment for tokens...');
-        const hashParams = new URLSearchParams(hashFragment);
-
-        const access_token = hashParams.get('access_token');
-        const refresh_token = hashParams.get('refresh_token');
-        const error_description = hashParams.get('error_description');
-
-        if (error_description) {
-          console.error('OAuth error:', error_description);
-          throw new Error(error_description);
-        }
-
-        if (access_token && refresh_token) {
-          console.log('✓ Tokens found in hash!');
-
-          const { data: sessionData, error: sessionError } =
-            await supabase.auth.setSession({
-              access_token,
-              refresh_token,
-            });
-
-          if (sessionError) {
-            console.error('❌ Session error:', sessionError);
-            throw sessionError;
-          }
-
-          console.log('✓ Session set successfully!');
-          return sessionData;
-        }
-      }
-
-      // Check query parameters for authorization code
-      const code = parsedUrl.searchParams.get('code');
-      const error_description = parsedUrl.searchParams.get('error_description');
-
-      if (error_description) {
-        console.error('OAuth error:', error_description);
-        throw new Error(error_description);
-      }
-
-      if (code) {
-        console.log('✓ Authorization code found');
-        console.log('Exchanging code for session...');
-
-        const { data: sessionData, error: sessionError } =
-          await supabase.auth.exchangeCodeForSession(code);
-
-        if (sessionError) {
-          console.error('❌ Code exchange error:', sessionError);
-          throw sessionError;
-        }
-
-        console.log('✓ Session created!');
-        return sessionData;
-      }
-
-      // Last attempt: check for tokens in query params
-      const access_token = parsedUrl.searchParams.get('access_token');
-      const refresh_token = parsedUrl.searchParams.get('refresh_token');
-
-      if (access_token && refresh_token) {
-        console.log('✓ Tokens found in query params');
-
-        const { data: sessionData, error: sessionError } = await supabase.auth.setSession(
-          {
-            access_token,
-            refresh_token,
-          },
-        );
-
-        if (sessionError) {
-          console.error('❌ Session error:', sessionError);
-          throw sessionError;
-        }
-
-        console.log('✓ Session set!');
-        return sessionData;
-      }
-
-      console.error('❌ No tokens or code found');
-      console.log('Full callback URL for debugging:', url);
-      throw new Error('No authentication data received. Please try again.');
+      throw new Error(`Authentication failed: ${result.type}`);
     }
 
-    if (result.type === 'cancel') {
-      console.log('User cancelled');
-      throw new Error('cancelled');
-    }
+    console.log('Success! Processing callback...');
 
-    if (result.type === 'dismiss') {
-      console.log('Browser dismissed');
+    // Extract the URL from the result
+    const { url } = result;
+    console.log('Callback URL:', url);
 
-      // Give it a moment for session to be set via deep link
-      await new Promise(resolve => setTimeout(resolve, 2000));
-
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-
-      if (session) {
-        console.log('✓ Session found!');
-        return { session, user: session.user };
+    // Parse URL to get the fragments
+    // Handle custom scheme URLs (subscriptionmanager://, exp://, etc.)
+    let parsedUrl: URL;
+    try {
+      if (url.startsWith('subscriptionmanager://') || url.startsWith('exp://')) {
+        // Replace custom scheme with http:// for URL parsing
+        const urlForParsing = url.replace(/^(subscriptionmanager|exp):\/\//, 'http://');
+        parsedUrl = new URL(urlForParsing);
+      } else {
+        parsedUrl = new URL(url);
       }
-
-      throw new Error('dismiss');
+    } catch (e) {
+      console.error('Error parsing URL:', e);
+      throw new Error('Invalid callback URL received');
     }
 
-    throw new Error(`Unexpected result: ${result.type}`);
-  } catch (error) {
-    console.error('=== Sign In Error ===');
-    console.error(error);
-    throw error;
+    const hashParams = new URLSearchParams(parsedUrl.hash.substring(1));
+
+    const access_token = hashParams.get('access_token');
+    const refresh_token = hashParams.get('refresh_token');
+
+    if (!access_token || !refresh_token) {
+      console.error('No tokens in callback URL');
+      console.log('Hash:', parsedUrl.hash);
+      console.log('Search:', parsedUrl.search);
+      throw new Error('No tokens received from authentication');
+    }
+
+    console.log('Tokens received, setting session...');
+
+    // Set the session with the tokens
+    const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
+      access_token,
+      refresh_token,
+    });
+
+    if (sessionError) {
+      console.error('Session error:', sessionError);
+      throw sessionError;
+    }
+
+    console.log('✓ Successfully signed in!');
+    console.log('User:', sessionData.session?.user?.email);
+
+    return sessionData;
+  } catch (error: any) {
+    console.error('Sign in error:', error);
+
+    // Don't throw error for user cancellation
+    if (error.message === 'cancelled') {
+      throw error;
+    }
+
+    throw new Error(error.message || 'Failed to sign in with Google');
   }
 };

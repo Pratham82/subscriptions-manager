@@ -1,18 +1,23 @@
 import { StyleSheet, Text, View, Pressable, ScrollView } from 'react-native';
+import { useAuth } from '@clerk/clerk-expo';
+import { useRouter } from 'expo-router';
 
 import { useSubscriptionStore } from '@/store/subscriptionStore';
-import { supabase } from '@/lib/supabase';
-import { useAuth } from '@/lib/AuthContext';
+import { useAuthStore } from '@/store/authStore';
 
 export default function SettingsScreen() {
   const { subscriptions } = useSubscriptionStore();
-  const { session } = useAuth();
+  const { isSignedIn, signOut } = useAuth();
+  const { signOut: signOutStore } = useAuthStore();
+  const router = useRouter();
   const activeCount = subscriptions.filter(sub => sub.isActive).length;
   const cancelledCount = subscriptions.filter(sub => !sub.isActive).length;
 
   const handleLogout = async () => {
     try {
-      await supabase.auth.signOut();
+      await signOut();
+      await signOutStore();
+      router.replace('/(auth)/login');
     } catch (error) {
       console.error('Error signing out:', error);
     }
@@ -75,7 +80,7 @@ export default function SettingsScreen() {
           </View>
         </View>
 
-        {session && (
+        {isSignedIn && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Account</Text>
             <Pressable

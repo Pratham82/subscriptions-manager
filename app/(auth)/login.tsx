@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import {
   StyleSheet,
   Text,
@@ -9,19 +9,74 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useOAuth, useAuth, useUser } from '@clerk/clerk-expo';
+import { useRouter } from 'expo-router';
 import { useAuthStore } from '@/store/authStore';
+import { syncClerkUserToSupabase } from '@/lib/clerk-supabase-sync';
 import { Logo } from '@/components/Logo';
 import { GoogleIcon } from '@/components/GoogleIcon';
+import { toast } from 'sonner-native';
 
 export default function LoginScreen() {
-  const { signInWithGoogle, isLoading } = useAuthStore();
+  const { startOAuthFlow } = useOAuth({ strategy: 'oauth_google' });
+  const { isSignedIn } = useAuth();
+  const { user } = useUser();
+  const { setClerkUser, isLoading, clerkUserId } = useAuthStore();
   const insets = useSafeAreaInsets();
+  const router = useRouter();
+  const hasSyncedRef = useRef(false);
+
+  // Sync Clerk user to Supabase when signed in (only once)
+  useEffect(() => {
+    if (isSignedIn && user && !hasSyncedRef.current && !clerkUserId) {
+      hasSyncedRef.current = true;
+      const syncUser = async () => {
+        try {
+          // Sync user to Supabase first
+          await syncClerkUserToSupabase(
+            user.id,
+            user.primaryEmailAddress?.emailAddress || '',
+            user.fullName || undefined,
+            user.imageUrl || undefined,
+          );
+
+          // Then set in auth store
+          await setClerkUser(user.id);
+
+          // Small delay to ensure state is updated
+          await new Promise(resolve => setTimeout(resolve, 100));
+
+          toast.success('Signed in successfully');
+          router.replace('/(tabs)');
+        } catch (error) {
+          console.error('Error syncing user:', error);
+          hasSyncedRef.current = false; // Reset on error so it can retry
+          toast.error('Failed to sync user data', {
+            description: error instanceof Error ? error.message : 'Unknown error',
+          });
+        }
+      };
+      syncUser();
+    }
+  }, [isSignedIn, user, setClerkUser, router, clerkUserId]);
 
   const handleGoogleSignIn = async () => {
     try {
-      await signInWithGoogle();
-    } catch (error) {
-      // Error is handled by the store
+      const { createdSessionId, setActive } = await startOAuthFlow();
+
+      if (createdSessionId) {
+        await setActive({ session: createdSessionId });
+        // The useEffect will handle syncing to Supabase
+      }
+    } catch (err: any) {
+      console.error('OAuth error', err);
+      if (err.errors) {
+        err.errors.forEach((error: any) => {
+          toast.error(error.message || 'Sign in failed');
+        });
+      } else {
+        toast.error('Failed to sign in with Google');
+      }
     }
   };
 

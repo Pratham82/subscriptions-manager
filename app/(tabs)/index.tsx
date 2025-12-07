@@ -7,8 +7,10 @@ import {
   ScrollView,
   ActivityIndicator,
 } from 'react-native';
+import { useUser } from '@clerk/clerk-expo';
 
 import { useSubscriptionStore } from '@/store/subscriptionStore';
+import { useAuthStore } from '@/store/authStore';
 import { Subscription } from '@/types/subscription';
 import {
   AddSubscriptionModal,
@@ -21,13 +23,25 @@ import { SortPicker, type SortOption } from '@/components/SortPicker';
 export default function SubscriptionsScreen() {
   const { subscriptions, isLoading, error, isInitialized, fetchSubscriptions } =
     useSubscriptionStore();
+  const { clerkUserId } = useAuthStore();
+  console.log('🚀 ~ SubscriptionsScreen ~ clerkUserId:', clerkUserId);
+  const { user, isLoaded } = useUser();
+  console.log('🚀 ~ SubscriptionsScreen ~ user:', user);
 
-  // Fetch subscriptions on mount
+  // Initialize Clerk user in store if signed in but not set
   useEffect(() => {
-    if (!isInitialized) {
+    if (isLoaded && user && !clerkUserId) {
+      const { setClerkUser } = useAuthStore.getState();
+      setClerkUser(user.id);
+    }
+  }, [isLoaded, user, clerkUserId]);
+
+  // Fetch subscriptions on mount, but only if user is authenticated
+  useEffect(() => {
+    if (!isInitialized && clerkUserId) {
       fetchSubscriptions();
     }
-  }, [isInitialized, fetchSubscriptions]);
+  }, [isInitialized, clerkUserId, fetchSubscriptions]);
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedSubscription, setSelectedSubscription] = useState<Subscription | null>(
     null,

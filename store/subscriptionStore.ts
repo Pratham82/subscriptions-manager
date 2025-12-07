@@ -40,6 +40,7 @@ export const useSubscriptionStore = create<SubscriptionStore>((set, get) => ({
       const subscriptions = await fetchSubscriptionsFromDb();
       set({ subscriptions, isLoading: false, isInitialized: true });
     } catch (error) {
+      console.log('🚀 ~ error:', error);
       const message =
         error instanceof Error ? error.message : 'Failed to fetch subscriptions';
       set({ error: message, isLoading: false, isInitialized: true });

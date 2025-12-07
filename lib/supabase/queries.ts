@@ -1,4 +1,4 @@
-import { supabase } from './client';
+import { getAuthenticatedSupabase } from './clerk-client';
 import { Subscription } from '@/types/subscription';
 import {
   DbSubscription,
@@ -12,18 +12,18 @@ import {
 } from './transformers';
 
 /**
- * Get the current user ID
+ * Get the current user ID from Clerk (stored in auth store)
  */
 async function getCurrentUserId(): Promise<string> {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // Import the auth store to get Clerk user ID
+  const { useAuthStore } = await import('@/store/authStore');
+  const clerkUserId = useAuthStore.getState().clerkUserId;
 
-  if (!user) {
+  if (!clerkUserId) {
     throw new Error('User not authenticated');
   }
 
-  return user.id;
+  return clerkUserId;
 }
 
 /**
@@ -31,6 +31,7 @@ async function getCurrentUserId(): Promise<string> {
  */
 export async function fetchSubscriptions(): Promise<Subscription[]> {
   const userId = await getCurrentUserId();
+  const supabase = getAuthenticatedSupabase();
 
   const { data, error } = await supabase
     .from('subscriptions')
@@ -50,6 +51,7 @@ export async function fetchSubscriptions(): Promise<Subscription[]> {
  */
 export async function fetchSubscriptionById(id: string): Promise<Subscription | null> {
   const userId = await getCurrentUserId();
+  const supabase = getAuthenticatedSupabase();
 
   const { data, error } = await supabase
     .from('subscriptions')
@@ -76,6 +78,7 @@ export async function createSubscription(
   subscription: Subscription,
 ): Promise<Subscription> {
   const userId = await getCurrentUserId();
+  const supabase = getAuthenticatedSupabase();
   const dbSubscription = toDbSubscription(subscription);
 
   const { data, error } = await supabase
@@ -102,6 +105,7 @@ export async function updateSubscription(
   updates: Partial<Subscription>,
 ): Promise<Subscription> {
   const userId = await getCurrentUserId();
+  const supabase = getAuthenticatedSupabase();
   const dbUpdates = toDbSubscriptionUpdate(updates);
 
   const { data, error } = await supabase
@@ -124,6 +128,7 @@ export async function updateSubscription(
  */
 export async function deleteSubscription(id: string): Promise<void> {
   const userId = await getCurrentUserId();
+  const supabase = getAuthenticatedSupabase();
 
   const { error } = await supabase
     .from('subscriptions')
@@ -148,6 +153,7 @@ export async function markSubscriptionAsCancelled(id: string): Promise<Subscript
  */
 export async function fetchActiveSubscriptions(): Promise<Subscription[]> {
   const userId = await getCurrentUserId();
+  const supabase = getAuthenticatedSupabase();
 
   const { data, error } = await supabase
     .from('subscriptions')
@@ -170,6 +176,7 @@ export async function fetchSubscriptionsByCategory(
   category: string,
 ): Promise<Subscription[]> {
   const userId = await getCurrentUserId();
+  const supabase = getAuthenticatedSupabase();
 
   const { data, error } = await supabase
     .from('subscriptions')

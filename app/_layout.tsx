@@ -12,7 +12,9 @@ import 'react-native-reanimated';
 
 import { useColorScheme } from '@/hooks';
 import { CustomSplashScreen } from './splash';
-import { AuthProvider, useAuth } from '../lib/AuthContext';
+import { ClerkAuthProvider } from '../lib/ClerkAuth';
+import { useAuth, useUser } from '@clerk/clerk-expo';
+import { useAuthStore } from '@/store/authStore';
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -28,11 +30,23 @@ export const unstable_settings = {
 SplashScreen.preventAutoHideAsync();
 
 function RootNavigation() {
-  const { session, loading } = useAuth();
+  const { isSignedIn, isLoaded } = useAuth();
+  const { user, isLoaded: userLoaded } = useUser();
+  const { clerkUserId, setClerkUser } = useAuthStore();
 
-  if (loading) return <Redirect href="/(auth)/loading" />;
+  // Initialize Clerk user in store when signed in (only if not already set)
+  // Note: The actual sync to Supabase happens in login.tsx
+  useEffect(() => {
+    if (isSignedIn && userLoaded && user && !clerkUserId) {
+      // Only set the user ID in store, don't sync here
+      // The sync happens in login.tsx to avoid duplicates
+      setClerkUser(user.id);
+    }
+  }, [isSignedIn, userLoaded, user, clerkUserId, setClerkUser]);
 
-  if (!session) return <Redirect href="/(auth)/login" />;
+  if (!isLoaded) return <Redirect href="/(auth)/loading" />;
+
+  if (!isSignedIn) return <Redirect href="/(auth)/login" />;
 
   return <Redirect href="/(tabs)" />;
 }
@@ -67,9 +81,9 @@ export default function RootLayout() {
   }
 
   return (
-    <AuthProvider>
+    <ClerkAuthProvider>
       <RootLayoutNav />
-    </AuthProvider>
+    </ClerkAuthProvider>
   );
 }
 
