@@ -1,5 +1,13 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { StyleSheet, Text, View, Pressable, TextInput, Switch } from 'react-native';
+import {
+  StyleSheet,
+  Text,
+  View,
+  Pressable,
+  TextInput,
+  Switch,
+  ActivityIndicator,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import BottomSheet, {
@@ -82,6 +90,7 @@ export function AddSubscriptionModal({
   const [notification, setNotification] =
     useState<(typeof NOTIFICATION_OPTIONS)[number]>('1 day before');
   const [url, setUrl] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
 
   const [selectedBrand, setSelectedBrand] = useState<Brand | null>(null);
   const [showBillingPicker, setShowBillingPicker] = useState(false);
@@ -169,52 +178,61 @@ export function AddSubscriptionModal({
     [],
   );
 
-  const handleSave = () => {
-    if (!name || !price) {
+  const handleSave = async () => {
+    if (!name || !price || isSaving) {
       return;
     }
 
-    const subscriptionData: Partial<Subscription> = {
-      name,
-      price: parseFloat(price),
-      currency: '₹',
-      nextPaymentDate: paymentDate.toISOString().split('T')[0],
-      billingCycleQuantity,
-      billingCycle,
-      category,
-      paymentMethod: paymentMethod || undefined,
-      freeTrial,
-      list,
-      notification,
-      url: url || undefined,
-      logo: selectedBrand?.name || undefined,
-      subscribedDate:
-        subscription?.subscribedDate || new Date().toISOString().split('T')[0],
-      isActive: subscription?.isActive ?? true,
-      billingHistory: subscription?.billingHistory || [],
-      priceHistory: subscription?.priceHistory || [],
-    };
+    setIsSaving(true);
 
-    if (isEdit && subscription) {
-      if (subscription.price !== parseFloat(price)) {
-        subscriptionData.priceHistory = [
-          ...(subscription.priceHistory || []),
-          {
-            date: new Date().toISOString().split('T')[0],
-            price: parseFloat(price),
-          },
-        ];
+    try {
+      const subscriptionData: Partial<Subscription> = {
+        name,
+        price: parseFloat(price),
+        currency: '₹',
+        nextPaymentDate: paymentDate.toISOString().split('T')[0],
+        billingCycleQuantity,
+        billingCycle,
+        category,
+        paymentMethod: paymentMethod || undefined,
+        freeTrial,
+        list,
+        notification,
+        url: url || undefined,
+        logo: selectedBrand?.name || undefined,
+        subscribedDate:
+          subscription?.subscribedDate || new Date().toISOString().split('T')[0],
+        isActive: subscription?.isActive ?? true,
+        billingHistory: subscription?.billingHistory || [],
+        priceHistory: subscription?.priceHistory || [],
+      };
+
+      if (isEdit && subscription) {
+        if (subscription.price !== parseFloat(price)) {
+          subscriptionData.priceHistory = [
+            ...(subscription.priceHistory || []),
+            {
+              date: new Date().toISOString().split('T')[0],
+              price: parseFloat(price),
+            },
+          ];
+        }
+        await updateSubscription(subscription.id, subscriptionData);
+      } else {
+        const newSubscription: Subscription = {
+          id: Date.now().toString(),
+          ...subscriptionData,
+        } as Subscription;
+        await addSubscription(newSubscription);
       }
-      updateSubscription(subscription.id, subscriptionData);
-    } else {
-      const newSubscription: Subscription = {
-        id: Date.now().toString(),
-        ...subscriptionData,
-      } as Subscription;
-      addSubscription(newSubscription);
-    }
 
-    onClose();
+      onClose();
+    } catch (error) {
+      console.error('Error saving subscription:', error);
+      // Error is handled by the store
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const getBillingCycleText = () => {
@@ -252,8 +270,16 @@ export function AddSubscriptionModal({
             <Text style={styles.headerTitle}>
               {isEdit ? 'Edit Subscription' : 'Add Subscription'}
             </Text>
-            <Pressable onPress={handleSave} style={styles.saveButton}>
-              <Text style={styles.saveButtonText}>Save</Text>
+            <Pressable
+              onPress={handleSave}
+              style={[styles.saveButton, isSaving && styles.saveButtonDisabled]}
+              disabled={isSaving}
+            >
+              {isSaving ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <Text style={styles.saveButtonText}>Save</Text>
+              )}
             </Pressable>
           </View>
 
@@ -529,6 +555,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
+    minWidth: 60,
+    alignItems: 'center',
+  },
+  saveButtonDisabled: {
+    opacity: 0.7,
   },
   saveButtonText: {
     color: '#fff',

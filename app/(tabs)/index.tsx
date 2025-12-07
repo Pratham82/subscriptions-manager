@@ -1,5 +1,12 @@
-import { useState, useMemo } from 'react';
-import { StyleSheet, Text, View, Pressable, ScrollView } from 'react-native';
+import { useState, useMemo, useEffect } from 'react';
+import {
+  StyleSheet,
+  Text,
+  View,
+  Pressable,
+  ScrollView,
+  ActivityIndicator,
+} from 'react-native';
 
 import { useSubscriptionStore } from '@/store/subscriptionStore';
 import { Subscription } from '@/types/subscription';
@@ -12,7 +19,15 @@ import { SolarSystemVisual } from '@/components/SolarSystemVisual';
 import { SortPicker, type SortOption } from '@/components/SortPicker';
 
 export default function SubscriptionsScreen() {
-  const { subscriptions } = useSubscriptionStore();
+  const { subscriptions, isLoading, error, isInitialized, fetchSubscriptions } =
+    useSubscriptionStore();
+
+  // Fetch subscriptions on mount
+  useEffect(() => {
+    if (!isInitialized) {
+      fetchSubscriptions();
+    }
+  }, [isInitialized, fetchSubscriptions]);
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedSubscription, setSelectedSubscription] = useState<Subscription | null>(
     null,
@@ -96,6 +111,16 @@ export default function SubscriptionsScreen() {
     { subscriptions: ring3Subs, count: ring3Subs.length },
   ];
 
+  // Show loading state on initial load
+  if (isLoading && !isInitialized) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#6b46c1" />
+        <Text style={styles.loadingText}>Loading subscriptions...</Text>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
@@ -108,6 +133,16 @@ export default function SubscriptionsScreen() {
             <Text style={styles.addIcon}>+</Text>
           </Pressable>
         </View>
+
+        {/* Error Banner */}
+        {error && (
+          <View style={styles.errorBanner}>
+            <Text style={styles.errorText}>{error}</Text>
+            <Pressable onPress={fetchSubscriptions}>
+              <Text style={styles.retryText}>Retry</Text>
+            </Pressable>
+          </View>
+        )}
 
         {/* Stats */}
         <View style={styles.statsContainer}>
@@ -144,6 +179,9 @@ export default function SubscriptionsScreen() {
 
         {/* Subscription List */}
         <View style={styles.listContainer}>
+          {isLoading && (
+            <ActivityIndicator size="small" color="#6b46c1" style={styles.listLoader} />
+          )}
           {sortedSubscriptions.map(subscription => (
             <SubscriptionCard
               key={subscription.id}
@@ -151,6 +189,14 @@ export default function SubscriptionsScreen() {
               onPress={() => setSelectedSubscription(subscription)}
             />
           ))}
+          {!isLoading && sortedSubscriptions.length === 0 && (
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyText}>No subscriptions yet</Text>
+              <Text style={styles.emptySubtext}>
+                Tap the + button to add your first subscription
+              </Text>
+            </View>
+          )}
         </View>
       </ScrollView>
 
@@ -179,8 +225,40 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#0a0a0f',
   },
+  loadingContainer: {
+    flex: 1,
+    backgroundColor: '#0a0a0f',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    color: '#888',
+    fontSize: 16,
+    marginTop: 16,
+  },
   scrollView: {
     flex: 1,
+  },
+  errorBanner: {
+    backgroundColor: '#ff4444',
+    marginHorizontal: 20,
+    marginBottom: 16,
+    padding: 12,
+    borderRadius: 8,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  errorText: {
+    color: '#fff',
+    fontSize: 14,
+    flex: 1,
+  },
+  retryText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+    marginLeft: 12,
   },
   header: {
     flexDirection: 'row',
@@ -253,5 +331,23 @@ const styles = StyleSheet.create({
   listContainer: {
     paddingHorizontal: 20,
     paddingBottom: 100,
+  },
+  listLoader: {
+    marginVertical: 20,
+  },
+  emptyState: {
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  emptyText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: '600',
+    marginBottom: 8,
+  },
+  emptySubtext: {
+    color: '#888',
+    fontSize: 14,
+    textAlign: 'center',
   },
 });
