@@ -3,7 +3,7 @@
 
 export type DbSubscription = {
   id: string;
-  user_id?: string;
+  user_id: string; // Required - links to auth.users(id)
   name: string;
   logo?: string | null;
   price: number;
