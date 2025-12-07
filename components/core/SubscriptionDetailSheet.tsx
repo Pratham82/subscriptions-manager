@@ -40,7 +40,6 @@ export function SubscriptionDetailSheet({
   subscription,
   onClose,
 }: SubscriptionDetailSheetProps) {
-  console.log('🚀 ~ SubscriptionDetailSheet ~ subscription:', subscription);
   const bottomSheetRef = useRef<BottomSheet>(null);
   const { markAsCancelled, deleteSubscription } = useSubscriptionStore();
   const [editModalVisible, setEditModalVisible] = React.useState(false);
