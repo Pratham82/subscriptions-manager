@@ -1,5 +1,12 @@
-import React, { useCallback, useMemo, useRef } from 'react';
-import { StyleSheet, Text, View, Pressable, Platform } from 'react-native';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
+import {
+  StyleSheet,
+  Text,
+  View,
+  Pressable,
+  Platform,
+  ActivityIndicator,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
@@ -43,11 +50,39 @@ export function SubscriptionDetailSheet({
 }: SubscriptionDetailSheetProps) {
   const bottomSheetRef = useRef<BottomSheet>(null);
   const { markAsCancelled, deleteSubscription } = useSubscriptionStore();
-  const [editModalVisible, setEditModalVisible] = React.useState(false);
+  const [editModalVisible, setEditModalVisible] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isCancelling, setIsCancelling] = useState(false);
   const insets = useSafeAreaInsets();
   const brand = subscription ? getBrandByName(subscription.logo) : null;
 
   const snapPoints = useMemo(() => ['90%'], []);
+
+  const handleMarkAsCancelled = async () => {
+    if (!subscription || isCancelling) return;
+    setIsCancelling(true);
+    try {
+      await markAsCancelled(subscription.id);
+      onClose();
+    } catch (error) {
+      // Error is handled by the store (toast will be shown)
+    } finally {
+      setIsCancelling(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!subscription || isDeleting) return;
+    setIsDeleting(true);
+    try {
+      await deleteSubscription(subscription.id);
+      onClose();
+    } catch (error) {
+      // Error is handled by the store (toast will be shown)
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   React.useEffect(() => {
     if (subscription) {
@@ -249,22 +284,26 @@ export function SubscriptionDetailSheet({
                 >
                   <View style={styles.actionsContent}>
                     <Pressable
-                      style={styles.cancelButton}
-                      onPress={() => {
-                        markAsCancelled(subscription.id);
-                        onClose();
-                      }}
+                      style={[styles.cancelButton, isCancelling && styles.buttonDisabled]}
+                      onPress={handleMarkAsCancelled}
+                      disabled={isCancelling || isDeleting}
                     >
-                      <Text style={styles.cancelButtonText}>Mark as Cancelled</Text>
+                      {isCancelling ? (
+                        <ActivityIndicator size="small" color="#fff" />
+                      ) : (
+                        <Text style={styles.cancelButtonText}>Mark as Cancelled</Text>
+                      )}
                     </Pressable>
                     <Pressable
                       style={styles.deleteButton}
-                      onPress={() => {
-                        deleteSubscription(subscription.id);
-                        onClose();
-                      }}
+                      onPress={handleDelete}
+                      disabled={isCancelling || isDeleting}
                     >
-                      <Text style={styles.deleteButtonText}>Delete subscription</Text>
+                      {isDeleting ? (
+                        <ActivityIndicator size="small" color="#888" />
+                      ) : (
+                        <Text style={styles.deleteButtonText}>Delete subscription</Text>
+                      )}
                     </Pressable>
                   </View>
                 </BlurView>
@@ -273,22 +312,26 @@ export function SubscriptionDetailSheet({
               <View style={styles.actionsContainer}>
                 <View style={styles.actionsContentAndroid}>
                   <Pressable
-                    style={styles.cancelButton}
-                    onPress={() => {
-                      markAsCancelled(subscription.id);
-                      onClose();
-                    }}
+                    style={[styles.cancelButton, isCancelling && styles.buttonDisabled]}
+                    onPress={handleMarkAsCancelled}
+                    disabled={isCancelling || isDeleting}
                   >
-                    <Text style={styles.cancelButtonText}>Mark as Cancelled</Text>
+                    {isCancelling ? (
+                      <ActivityIndicator size="small" color="#fff" />
+                    ) : (
+                      <Text style={styles.cancelButtonText}>Mark as Cancelled</Text>
+                    )}
                   </Pressable>
                   <Pressable
                     style={styles.deleteButton}
-                    onPress={() => {
-                      deleteSubscription(subscription.id);
-                      onClose();
-                    }}
+                    onPress={handleDelete}
+                    disabled={isCancelling || isDeleting}
                   >
-                    <Text style={styles.deleteButtonText}>Delete subscription</Text>
+                    {isDeleting ? (
+                      <ActivityIndicator size="small" color="#888" />
+                    ) : (
+                      <Text style={styles.deleteButtonText}>Delete subscription</Text>
+                    )}
                   </Pressable>
                 </View>
               </View>
@@ -477,6 +520,9 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     borderRadius: 12,
     alignItems: 'center',
+  },
+  buttonDisabled: {
+    opacity: 0.7,
   },
   cancelButtonText: {
     color: '#fff',
