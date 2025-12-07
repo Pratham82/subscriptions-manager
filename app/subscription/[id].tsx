@@ -3,7 +3,7 @@ import { StyleSheet, Text, View, Pressable, ScrollView } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 
 import { useSubscriptionStore } from '@/store/subscriptionStore';
-import { SubscriptionModal } from '@/components/core';
+import { AddSubscriptionModal } from '@/components/core';
 
 function formatDate(dateString: string): string {
   const date = new Date(dateString);
@@ -163,7 +163,7 @@ export default function SubscriptionDetailScreen() {
         </View>
       </ScrollView>
 
-      <SubscriptionModal
+      <AddSubscriptionModal
         visible={modalVisible}
         onClose={() => setModalVisible(false)}
         subscription={subscription}
