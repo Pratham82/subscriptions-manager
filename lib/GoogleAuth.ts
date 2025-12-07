@@ -1,4 +1,7 @@
+// lib/GoogleAuth.ts - Mobile-optimized version
 import * as WebBrowser from 'expo-web-browser';
+import * as Linking from 'expo-linking';
+
 import { supabase } from './supabase/client';
 
 WebBrowser.maybeCompleteAuthSession();
@@ -11,46 +14,83 @@ export const signInWithGoogle = async () => {
       throw new Error('Supabase URL is not configured');
     }
 
-    // Use app scheme for deep linking back to the app
-    // Hardcode the redirect URL to ensure it uses the app scheme, not localhost
-    const redirectUrl = 'subscriptionmanager://auth/callback';
+    console.log('=== Starting Google Sign In ===');
 
-    console.log('Redirect URL:', redirectUrl);
+    // Create a custom redirect URL using Expo's linking
+    // This ensures the callback comes back to our app
+    const redirectUrl = Linking.createURL('auth/callback');
+    console.log('App redirect URL:', redirectUrl);
 
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
         redirectTo: redirectUrl,
-        skipBrowserRedirect: false, // Let Supabase handle the redirect
+        skipBrowserRedirect: false,
+        queryParams: {
+          access_type: 'offline',
+          prompt: 'consent',
+        },
       },
     });
 
-    if (error) throw error;
-
-    if (!data?.url) {
-      throw new Error('Failed to get OAuth URL');
+    if (error) {
+      console.error('❌ OAuth initialization error:', error);
+      throw error;
     }
 
-    // Open the browser for OAuth
-    console.log('Opening OAuth URL:', data.url);
-    const res = await WebBrowser.openAuthSessionAsync(data.url, redirectUrl);
+    if (!data?.url) {
+      throw new Error('Failed to get OAuth URL from Supabase');
+    }
 
-    console.log('WebBrowser result type:', res.type);
-    console.log('WebBrowser result:', JSON.stringify(res, null, 2));
+    console.log('✓ OAuth URL generated');
+    console.log('Opening browser...');
 
-    if (res.type === 'success' && res.url) {
-      const { url } = res;
-      console.log('Callback URL received:', url);
+    // Open browser and wait for callback
+    const result = await WebBrowser.openAuthSessionAsync(data.url, redirectUrl);
 
-      // Try to parse tokens from URL hash fragment (Supabase sometimes returns tokens in hash)
-      const urlParts = url.split('#');
-      if (urlParts.length > 1) {
-        const params = new URLSearchParams(urlParts[1]);
-        const access_token = params.get('access_token');
-        const refresh_token = params.get('refresh_token');
+    console.log('=== Browser Closed ===');
+    console.log('Result type:', result.type);
+
+    if (result.type === 'success' && result.url) {
+      console.log('✓ Callback received');
+      console.log('Callback URL:', result.url);
+
+      // Parse the callback URL
+      const url = result.url;
+      let parsedUrl;
+
+      try {
+        // Handle custom scheme URLs
+        if (url.startsWith('exp://') || url.startsWith('subscriptionmanager://')) {
+          // Replace custom scheme with http for parsing
+          const urlForParsing = url.replace(/^(exp|subscriptionmanager):\/\//, 'http://');
+          parsedUrl = new URL(urlForParsing);
+        } else {
+          parsedUrl = new URL(url);
+        }
+      } catch (e) {
+        console.error('Error parsing URL:', e);
+        throw new Error('Invalid callback URL received');
+      }
+
+      // Extract tokens from hash fragment (most common)
+      const hashFragment = url.split('#')[1];
+      if (hashFragment) {
+        console.log('Checking hash fragment for tokens...');
+        const hashParams = new URLSearchParams(hashFragment);
+
+        const access_token = hashParams.get('access_token');
+        const refresh_token = hashParams.get('refresh_token');
+        const error_description = hashParams.get('error_description');
+
+        if (error_description) {
+          console.error('OAuth error:', error_description);
+          throw new Error(error_description);
+        }
 
         if (access_token && refresh_token) {
-          console.log('Found tokens in URL hash');
+          console.log('✓ Tokens found in hash!');
+
           const { data: sessionData, error: sessionError } =
             await supabase.auth.setSession({
               access_token,
@@ -58,98 +98,95 @@ export const signInWithGoogle = async () => {
             });
 
           if (sessionError) {
+            console.error('❌ Session error:', sessionError);
             throw sessionError;
           }
 
+          console.log('✓ Session set successfully!');
           return sessionData;
         }
       }
 
-      // Fallback: Try to get code from query params and exchange it
-      // Handle both app scheme URLs and regular URLs
-      let callbackUrl: URL;
-      try {
-        // If URL starts with app scheme, we need to handle it differently
-        if (url.startsWith('subscriptionmanager://')) {
-          // Replace the scheme with http:// for URL parsing
-          const urlForParsing = url.replace('subscriptionmanager://', 'http://');
-          callbackUrl = new URL(urlForParsing);
-        } else {
-          callbackUrl = new URL(url);
-        }
-      } catch (e) {
-        console.error('Error parsing URL:', url, e);
-        throw new Error(`Invalid callback URL: ${url}`);
+      // Check query parameters for authorization code
+      const code = parsedUrl.searchParams.get('code');
+      const error_description = parsedUrl.searchParams.get('error_description');
+
+      if (error_description) {
+        console.error('OAuth error:', error_description);
+        throw new Error(error_description);
       }
 
-      const code = callbackUrl.searchParams.get('code');
-      console.log('Extracted code from URL:', code ? 'Found' : 'Not found');
-
       if (code) {
-        console.log('Found code in URL, exchanging for session');
+        console.log('✓ Authorization code found');
+        console.log('Exchanging code for session...');
+
         const { data: sessionData, error: sessionError } =
           await supabase.auth.exchangeCodeForSession(code);
 
         if (sessionError) {
+          console.error('❌ Code exchange error:', sessionError);
           throw sessionError;
         }
 
+        console.log('✓ Session created!');
         return sessionData;
       }
 
-      // Last fallback: Try to extract tokens from query params
-      const accessToken = callbackUrl.searchParams.get('access_token');
-      const refreshToken = callbackUrl.searchParams.get('refresh_token');
+      // Last attempt: check for tokens in query params
+      const access_token = parsedUrl.searchParams.get('access_token');
+      const refresh_token = parsedUrl.searchParams.get('refresh_token');
 
-      if (accessToken && refreshToken) {
-        console.log('Found tokens in query params');
+      if (access_token && refresh_token) {
+        console.log('✓ Tokens found in query params');
+
         const { data: sessionData, error: sessionError } = await supabase.auth.setSession(
           {
-            access_token: accessToken,
-            refresh_token: refreshToken,
+            access_token,
+            refresh_token,
           },
         );
 
         if (sessionError) {
+          console.error('❌ Session error:', sessionError);
           throw sessionError;
         }
 
+        console.log('✓ Session set!');
         return sessionData;
       }
 
-      throw new Error('No tokens or code found in callback URL');
-    } else if (res.type === 'cancel') {
-      throw new Error('User cancelled sign in');
-    } else if (res.type === 'dismiss') {
-      // Browser was dismissed - check if session was set via deep link
-      console.log('Browser dismissed, checking if session was set via deep link...');
+      console.error('❌ No tokens or code found');
+      console.log('Full callback URL for debugging:', url);
+      throw new Error('No authentication data received. Please try again.');
+    }
 
-      // Wait a moment for deep link to process
-      await new Promise(resolve => setTimeout(resolve, 1000));
+    if (result.type === 'cancel') {
+      console.log('User cancelled');
+      throw new Error('cancelled');
+    }
 
-      // Check if we have a session now
+    if (result.type === 'dismiss') {
+      console.log('Browser dismissed');
+
+      // Give it a moment for session to be set via deep link
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
       const {
         data: { session },
-        error: sessionError,
       } = await supabase.auth.getSession();
 
-      if (sessionError) {
-        console.error('Error getting session:', sessionError);
-        throw new Error('Failed to get session after browser dismiss');
+      if (session) {
+        console.log('✓ Session found!');
+        return { session, user: session.user };
       }
 
-      if (session) {
-        console.log('Session found after browser dismiss - deep link worked!');
-        return { session, user: session.user };
-      } else {
-        throw new Error('Browser was closed but no session was found. Please try again.');
-      }
-    } else {
-      console.error('Unexpected WebBrowser result type:', res.type);
-      throw new Error(`Failed to complete sign in: ${res.type}`);
+      throw new Error('dismiss');
     }
+
+    throw new Error(`Unexpected result: ${result.type}`);
   } catch (error) {
-    console.error('Error signing in with Google:', error);
+    console.error('=== Sign In Error ===');
+    console.error(error);
     throw error;
   }
 };
