@@ -3,13 +3,16 @@ import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
+import { Toaster } from 'sonner-native';
 import 'react-native-gesture-handler';
 import 'react-native-reanimated';
 
 import { useColorScheme } from '@/hooks';
+
+import { CustomSplashScreen } from './splash';
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -29,6 +32,7 @@ export default function RootLayout() {
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
     ...FontAwesome.font,
   });
+  const [splashVisible, setSplashVisible] = useState(true);
 
   // Expo Router uses Error Boundaries to catch errors in the navigation tree.
   useEffect(() => {
@@ -36,13 +40,20 @@ export default function RootLayout() {
   }, [error]);
 
   useEffect(() => {
+    if (loaded && !splashVisible) {
+      SplashScreen.hideAsync();
+    }
+  }, [loaded, splashVisible]);
+
+  const handleSplashFinish = () => {
+    setSplashVisible(false);
     if (loaded) {
       SplashScreen.hideAsync();
     }
-  }, [loaded]);
+  };
 
-  if (!loaded) {
-    return null;
+  if (!loaded || splashVisible) {
+    return <CustomSplashScreen onFinish={handleSplashFinish} />;
   }
 
   return <RootLayoutNav />;
@@ -59,6 +70,7 @@ function RootLayoutNav() {
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
             <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
           </Stack>
+          <Toaster position="top-center" />
         </ThemeProvider>
       </BottomSheetModalProvider>
     </GestureHandlerRootView>
